@@ -223,7 +223,7 @@ public class JustifiedTextView extends View
 			
 			boolean justified;
 			
-			// Line konstruktora
+			// TextLine konstruktora
 			Line()
 				{
 				firstWord = -1;
@@ -238,7 +238,7 @@ public class JustifiedTextView extends View
 				justified = true;
 				}
 
-			// Szó hozzáadása Line-hoz
+			// Szó hozzáadása TextLine-hoz
 			private boolean addWord(int wordNo)
 				{
 				float wordWidth = words.get(wordNo).width;
