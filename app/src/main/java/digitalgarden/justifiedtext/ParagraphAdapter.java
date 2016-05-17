@@ -26,7 +26,7 @@ public class ParagraphAdapter
 	
 	public static Reader getParagraph(int paraNo) throws EOFException, FileNotFoundException, IOException
 		{
-		Utf8Reader file = new Utf8Reader(Environment.getExternalStorageDirectory().getAbsolutePath() + "/bookprobe.txt");
+		RandomAccessReader file = new RandomAccessReader(Environment.getExternalStorageDirectory().getAbsolutePath() + "/proba.txt");
 		
 		if ( paraNo >= positions.size() )
 			{
@@ -43,7 +43,7 @@ public class ParagraphAdapter
 						throw new EOFException();
 						}
 					}
-				positions.add(Long.valueOf(file.getPosition()));
+				positions.add(Long.valueOf(file.getFilePointer()));
 				}
 			}
 		

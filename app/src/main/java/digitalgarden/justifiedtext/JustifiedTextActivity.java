@@ -8,8 +8,7 @@ import android.widget.Toast;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 
-import digitalgarden.justifiedtext.JustifiedTextView.OnCommandListener;
-import digitalgarden.justifiedtext.JustifiedTextView.OnWordSelectedListener;
+import digitalgarden.justifiedtext.scribe.Scribe;
 
 public class JustifiedTextActivity extends Activity 
 	{
@@ -22,7 +21,16 @@ public class JustifiedTextActivity extends Activity
 		{
 	    super.onCreate(savedInstanceState);
 	    setContentView(R.layout.activity_justified_text);
-	    
+
+        Scribe.note( "Standard primary note" );
+        Scribe.note_secondary( "Standard secondary note" );
+
+        Scribe.note( 4, "Standard primary note" );
+        Scribe.note( 5, "Standard secondary note" );
+
+
+
+
 		editText = (EditText) findViewById(R.id.editText);
 		justText = (JustifiedTextView) findViewById(R.id.justText);
 
@@ -48,13 +56,13 @@ public class JustifiedTextActivity extends Activity
 			}
 		catch(Exception e)
 			{
-			Toast.makeText(this, e.toString(), Toast.LENGTH_SHORT).show();								
+			Toast.makeText(this, e.toString(), Toast.LENGTH_SHORT).show();
 			}
 
 		justText.setPosition(paraPos, wordPos);
 		justText.setFontSize(fontSize);
 			
-		justText.setOnWordSelectedListener(new OnWordSelectedListener() 
+		justText.setOnWordSelectedListener(new JustifiedTextView.OnWordSelectedListener()
 			{
 			public void onSelect(String word)
 				{
@@ -62,7 +70,7 @@ public class JustifiedTextActivity extends Activity
 				}
 			});
 			
-		justText.setOnCommandListener(new OnCommandListener() 
+		justText.setOnCommandListener(new JustifiedTextView.OnCommandListener()
 			{
 			public void onSelect()
 				{
@@ -75,7 +83,6 @@ public class JustifiedTextActivity extends Activity
 					{}
 				}
 			});
-			
 		}
 		
 	@Override
@@ -94,6 +101,7 @@ public class JustifiedTextActivity extends Activity
 		 */
 
 		int size = 0;
+
 		try
 			{
 			DataInputStream fileMainIn = new DataInputStream( openFileInput("main") );
