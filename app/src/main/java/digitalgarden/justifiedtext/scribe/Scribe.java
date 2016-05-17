@@ -24,12 +24,20 @@ import java.util.Locale;
 
 /**
  * MODIFICATION
- * Instead of 'limit' a special mask is used.
+ * 'mask' instead of 'limit'
  *
- * MASK is a 64 bit long
- * Lowest bit (odd/even) - primary and secondary logs
- * Highest bit (sign) set - use always
- * All other bits: Use only, if the two masks have got common binary '1'
+ * Each message can have a 'level' value (integer)
+ * - the lowest bit (odd/even): decides between primary (0) and secondary (1) logs.
+ * - the highest bit (negative values): use always (even if mask is 0)
+ * - remaining 30 bits define the 'level'
+ *
+ * Both logs have got a 'mask' value (integer)
+ * - lowest and highest bits are indifferent
+ * - remaining 30 bits define the 'mask'
+ *
+ * Messages with negative levels are always shown
+ * Messages with positive levels are shown only, if mask and level have ON bits on the same positions
+ * ('mask' binary-and 'level' is NOT null)
  */
 
 /**
@@ -52,16 +60,6 @@ import java.util.Locale;
  * System log's tag can be set.
  * Directory path (on primary sd-card) and log file name can be set. 
  * Helper methods are available to delete log-file and archive longer logs (in several steps). 
- * <p>
- * Special feature: 
- * Each message can have a level.
- * Highest (default) message level is NO_LIMIT. No messages will be disabled above NO_LIMIT.
- * Upper level limit can be set, messages below this limit are disabled.
- * An inspected region can be set also. These messages will be enabled even below limit.
- * "Low level" functions should have a low level, while higher functions should get a higher level.
- * Higher limit will show a summary about the work of the code, while lower limits can give a deeper
- * insight. Performance will decrease in this case!
- * An interesting part can be "inspected", and detailed debug information will be sent.  
  * <p>
  * Configuration:
  * There are two separate configurations, one for odd, and one for even message levels.
@@ -114,8 +112,8 @@ public class Scribe
     /** Maximum number of archived log files */
     public static final int MAX_LOGFILE = 8;
 
-    /** Debug cannot be limited above this value */
-    public static final int NO_LIMIT = 1000;
+    /** Debug cannot be limited with this value */
+    public static final int NO_LIMIT = -2;
     /** Not limited level value for secondary config */
     public static final int NO_LIMIT_SECONDARY = NO_LIMIT + 1;
 
@@ -133,7 +131,7 @@ public class Scribe
     /** Default debug enabled switch */
     private static final boolean DEFAULT_DEBUG_ENABLED = true;
     /** Default mask -1 == all messages enabled */
-    private static final long DEFAULT_MASK = -1L;
+    private static final int DEFAULT_MASK = -1;
     /** Default time stamp enabled switch */
     private static final boolean DEFAULT_TIME_STAMP = true;
     /** Default space stamp enabled switch */
@@ -200,8 +198,8 @@ public class Scribe
         private String directoryName;
         /** Toast-log context (of Activity). Null disables. */
         private Context context;
-        /** Messages enabled if mask and level allows it */
-        private long mask;
+        /** Messages enabled if mask and level is not null */
+        private int mask;
         /** Is time stamp enabled for file-log messages? */
         private boolean timeStampEnabled;
         /** Is space stamp (class.method) enabled for file-log messages? */
@@ -533,7 +531,7 @@ public class Scribe
      * @param conf PRIMARY/SECONDARY configuration
      * @param mask
      */
-    private static void setMask( int conf, long mask )
+    private static void setMask( int conf, int mask )
         {
         activateSecondaryConfig( conf );
         synchronized ( lock[conf] )
@@ -547,7 +545,7 @@ public class Scribe
      * @param conf PRIMARY/SECONDARY configuration
      * @return mask
      */
-    private static long getMask( int conf )
+    private static int getMask( int conf )
         {
         synchronized ( lock[conf] )
             {
@@ -556,15 +554,15 @@ public class Scribe
         }
 
     /**
-     * Check wether level is enabled.
-     * All negative leveles are enabled.
+     * Check whether level is enabled.
+     * All negative levels are enabled.
      * @param level message level
-     * @return true if level is enabled (within limits or above NO_LIMIT)
+     * @return true if level is enabled
      */
-    private static boolean isLevelEnabled( long level )
+    private static boolean isLevelEnabled( int level )
         {
         // Check highest (sign) bit - it is always enabled (even if mask is 0)
-        if ( level < 0L )
+        if ( level < 0 )
             return true;
 
         // Do not check lowest bit (can be 0 or 1) - it only refers to conf
@@ -733,7 +731,7 @@ public class Scribe
 
             // Cannot be null !
             config[conf].directoryName = state.getString( DIRECTORY_NAME, DEFAULT_DIRECTORY);
-            config[conf].mask = state.getLong( MASK, DEFAULT_MASK );
+            config[conf].mask = state.getInt( MASK, DEFAULT_MASK );
             config[conf].timeStampEnabled = state.getBoolean( TIME_STAMP, DEFAULT_TIME_STAMP );
             config[conf].spaceStampEnabled = state.getBoolean( SPACE_STAMP, DEFAULT_SPACE_STAMP );
             config[conf].context = null;  // Context can be stored only temporary! It is switched of during save/load.
@@ -756,7 +754,7 @@ public class Scribe
             state.putString( LOG_TAG, config[conf].logTag);
             state.putString( FILE_NAME, config[conf].fileName);
             state.putString( DIRECTORY_NAME, config[conf].directoryName);
-            state.putLong( MASK, config[conf].mask);
+            state.putInt( MASK, config[conf].mask);
             state.putBoolean( TIME_STAMP, config[conf].timeStampEnabled);
             state.putBoolean( SPACE_STAMP, config[conf].spaceStampEnabled);
             config[conf].context = null;  // Context can be stored only temporary! It is switched of during save/load.
@@ -977,18 +975,17 @@ public class Scribe
         }
 
     /**
-     * Sets limit. Messages above this limit are enabled.
-     * (No restriction for limits above NO_LIMIT!)
+     * Sets mask.
      * PRIMARY Config - valid for ALL/EVEN levels after activation of sec. config
      * @param mask
      */
-    public static void setMask( long mask )
+    public static void setMask( int mask )
         {
         setMask( PRIMARY_CONFIG, mask );
         }
 
     /**
-     * Resets limit to its original -1 value. No messages will be limited.
+     * Resets mask to its original -1 value. No messages will be limited.
      * PRIMARY Config - valid for ALL/EVEN levels after activation of sec. config
      */
     public static void unMask( )
@@ -1191,18 +1188,17 @@ public class Scribe
         }
 
     /**
-     * Sets limit. Messages above this limit are enabled.
-     * (No restriction for limits above NO_LIMIT!)
+     * Sets mask.
      * SECONDARY Config - valid for ODD levels. Secondary config will be activated
      * @param mask
      */
-    public static void setMaskSecondary( long mask )
+    public static void setMaskSecondary( int mask )
         {
         setMask( SECONDARY_CONFIG, mask );
         }
 
     /**
-     * Resets limit to its original 0 value. No messages will be limited.
+     * Resets mask to its original -1 value. No messages will be limited.
      * SECONDARY Config - valid for ODD levels. Secondary config will be activated
      */
     public static void unMaskSecondary( )
@@ -1280,9 +1276,9 @@ public class Scribe
      * @param text log note
      * @return message ({@link #OK}, {@link #OFF} or error) from file-log
      */
-    private static String addText( Type type, long level, String text )
+    private static String addText( Type type, int level, String text )
         {
-        int conf = (int)(level % 2L);
+        int conf = level % 2;
 
         if ( !isEnabled(conf) )
             return OFF;
@@ -1459,7 +1455,7 @@ public class Scribe
      * @param text log note
      * @return message ({@link #OK}, {@link #OFF} or error) from file-log
      */
-    public static String title(long level, String text)
+    public static String title(int level, String text)
         {
         return addText( Type.TITLE, level, text );
         }
@@ -1471,7 +1467,7 @@ public class Scribe
      * @param text log note
      * @return message ({@link #OK}, {@link #OFF} or error) from file-log
      */
-    public static String note(long level, String text)
+    public static String note(int level, String text)
         {
         return addText( Type.NOTE, level, text );
         }
@@ -1484,7 +1480,7 @@ public class Scribe
      * @param text log note
      * @return message ({@link #OK}, {@link #OFF} or error) from file-log
      */
-    public static String debug(long level, String text)
+    public static String debug(int level, String text)
         {
         return addText( Type.DEBUG, level, text );
         }
@@ -1496,7 +1492,7 @@ public class Scribe
      * @param text log note
      * @return message ({@link #OK}, {@link #OFF} or error) from file-log
      */
-    public static String error(long level, String text)
+    public static String error(int level, String text)
         {
         return addText( Type.ERROR, level, text );
         }
@@ -1507,7 +1503,7 @@ public class Scribe
      * Primary config is used for EVEN, secondary for ODD levels
      * @return message ({@link #OK}, {@link #OFF} or error) from file-log
      */
-    public static String locus( long level )
+    public static String locus( int level )
         {
         return addText( Type.LOCUS, level, "@ " + spaceStamp() );
         }
