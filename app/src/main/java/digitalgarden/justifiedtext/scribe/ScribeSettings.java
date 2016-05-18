@@ -130,13 +130,12 @@ public class ScribeSettings
 
 
     /**
-     * Sets mask. Messages above this limit are enabled.
-     * (No restriction for limits above NO_LIMIT!)
+     * Sets mask.
      * @param mask
      */
-    public ScribeSettings setMask( long mask )
+    public ScribeSettings setMask( int mask )
         {
-        state.putLong( Scribe.MASK, mask );
+        state.putInt( Scribe.MASK, mask );
         return this;
         }
 

@@ -1,74 +1,83 @@
 package digitalgarden.justifiedtext.description;
 
+import java.util.List;
+
 /**
  * Descriptor of a line
  */
 public class TextLine
     {
-    private float posy;
+    private List<TextWord> words;
 
-    private int firstWord;
+    // negative values: rendering was not started
+    private int firstWord = -1;
     private int lastWord;
 
-    private int wordCount;
-    private int spaceCount;
 
-    private float textWidth;
-    private float spaceWidth;
-
-    private boolean justified;
-
-    // TextLine konstruktora
-    TextLine()
+    TextLine( List<TextWord> words )
         {
-        firstWord = -1;
-        lastWord = -2;
-
-        wordCount = 0;
-        spaceCount = -1;
-
-        textWidth = 0f;
-        spaceWidth = 0f;
-
-        justified = true;
+        this.words = words;
         }
 
-    // Szó hozzáadása TextLine-hoz
-    private boolean addWord(int wordNo)
+
+    public int render( int first, float spaceMin, float spaceMax, int width )
         {
-        float wordWidth = words.get(wordNo).width;
+        int wordCursor;
+        int wordsInLine = 0;
 
-        // túl hosszú szavak nincsenek megfelelően lekezelve!
-        // ezt csak részletes feldolgozásnál tudjuk megtenni
-        if (wordWidth > getWidth() && firstWord == -1)
+        float textWidth = 0f;
+        float spaceWidth;
+
+        float wordWidth;
+
+        this.firstWord = first;
+        this.lastWord = first - 1;
+
+        // iterate through words
+        for ( wordCursor = first; wordCursor < words.size(); wordCursor++ )
             {
-            firstWord = wordNo;
-            lastWord = wordNo;
-            wordCount++;
-            spaceCount++;
-            textWidth += wordWidth;
+            wordWidth = words.get(wordCursor).getWidth();
 
-            return true;
-            }
-
-        if ( textWidth + (spaceCount + 1) * spaceMin + wordWidth <= getWidth() )
-            {
-            if (firstWord == -1)
+            if ( textWidth + wordsInLine * spaceMin + wordWidth <= width )
                 {
-                firstWord = wordNo;
-                lastWord = wordNo;
+                lastWord++;
+                wordsInLine++;
+                textWidth += wordWidth;
+                }
+            else if ( wordCursor == firstWord )
+                {
+                // long words will overflow width
+                // this can be solved only if unit is smaller than a word
+                return wordCursor + 1;
                 }
             else
                 {
-                lastWord++;
+                break;
                 }
+            }
 
-            wordCount++;
-            spaceCount++;
-            textWidth += wordWidth;
-            return true;
+        // This line is empty
+        if ( wordsInLine == 0 )
+            return wordCursor; // It should be 0
+
+        if ( wordCursor >= words.size() ) // last line - do not justify
+            {
+            spaceWidth = spaceMin;
             }
         else
-            return false;
+            {
+            spaceWidth = (width - textWidth - 0.1f) / wordsInLine;
+            if (spaceWidth > spaceMax)
+                spaceWidth = spaceMin;
+            }
+
+        float pos = 0;
+        for (int w = first; w <= lastWord; w++)
+            {
+            words.get(w).setPosition(pos);
+            pos += words.get(w).getWidth() + spaceWidth;
+            }
+
+        return wordCursor;
         }
     }

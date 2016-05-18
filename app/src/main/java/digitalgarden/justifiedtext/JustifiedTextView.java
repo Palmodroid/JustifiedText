@@ -16,8 +16,6 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
-import java.io.IOException;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,8 +80,6 @@ public class JustifiedTextView extends View
 
 	// View egészére vonatkozó változók
 	private Paint paintFont;
-	private float spaceMin;
-	private float spaceMax;
 	private float fontAscent;
 	private float fontDescent;
 	private float fontLeading;
@@ -118,8 +114,6 @@ public class JustifiedTextView extends View
 		paintFont = new Paint();
 		paintFont.setColor(0xffffd4ab);
 		paintFont.setTextSize(26f);
-		spaceMin = paintFont.measureText(".");
-		spaceMax = paintFont.measureText("ww");
 
 		fontAscent = paintFont.ascent();
 		fontDescent = paintFont.descent();
@@ -162,9 +156,6 @@ public class JustifiedTextView extends View
 		
 		// ezeket at kell tenni vhova
 		
-		spaceMin = paintFont.measureText(".");
-		spaceMax = paintFont.measureText("ww");
-
 		fontAscent = paintFont.ascent();
 		fontDescent = paintFont.descent();
 		fontLeading = 5f;			
@@ -182,215 +173,7 @@ public class JustifiedTextView extends View
 		return paintFont.getTextSize();
 		}
 	
-	
-	// Bekezdésekre vonatkozó részek
-	private class Paragraph
-		{
-		List<Word> words;
-		List<Line> lines;
-		
-		boolean fake;
-		
-		// Szavak osztálya
-		private class Word
-			{
-			float posx;
-			
-			String text;
-			float width;
 
-			// Szó konstruktora
-			Word(String t, float w)
-				{
-				text = t;
-				width = w;
-				}
-			}
-
-		// Sorok osztálya
-		private class Line
-			{
-			float posy;
-			
-			int firstWord;
-			int lastWord;
-
-			int wordCount;
-			int spaceCount;
-			
-			float textWidth;
-			float spaceWidth;
-			
-			boolean justified;
-			
-			// TextLine konstruktora
-			Line()
-				{
-				firstWord = -1;
-				lastWord = -2;
-
-				wordCount = 0;
-				spaceCount = -1;
-			
-				textWidth = 0f;
-				spaceWidth = 0f;
-			
-				justified = true;
-				}
-
-			// Szó hozzáadása TextLine-hoz
-			private boolean addWord(int wordNo)
-				{
-				float wordWidth = words.get(wordNo).width;
-				
-				// túl hosszú szavak nincsenek megfelelően lekezelve!
-				// ezt csak részletes feldolgozásnál tudjuk megtenni
-				if (wordWidth > getWidth() && firstWord == -1)
-					{
-					firstWord = wordNo;
-					lastWord = wordNo;
-					wordCount++;
-					spaceCount++;
-					textWidth += wordWidth;
-
-					return true;
-					}
-				
-				if ( textWidth + (spaceCount + 1) * spaceMin + wordWidth <= getWidth() )
-					{
-					if (firstWord == -1)
-						{
-						firstWord = wordNo;
-						lastWord = wordNo;
-						}
-					else
-						{
-						lastWord++;
-						}
-					
-					wordCount++;
-					spaceCount++;
-					textWidth += wordWidth;
-					return true;
-					}
-				else
-		 			return false;
-				}
-			}
-
-		// Feldolgozza a bekezdés összes szavát, még sortörés nélkül
-		Paragraph(int paraNo)
-			{
-			words = new ArrayList<Word>();
-			
-			try
-				{
-				Reader paraSr = ParagraphAdapter.getParagraph(paraNo);
-				int c;
-
-para:			do	{
-					// szokozok
-					do	{
-						try
-							{
-							c = paraSr.read();
-							} 
-						catch (IOException e)
-							{
-							c = -1;
-							}
-						if (c == -1 || c == 0x0a)
-							break para; 
-						// itt vége a bekezdésnek, záró space-k nem érdekesek
-						} while (c == ' ');
-	
-					// szavak
-					// itt biztos, hogy betűvel kezdődik
-					StringBuilder sb = new StringBuilder();
-					do 	{
-						sb.append((char)c);
-						try
-							{
-							c = paraSr.read();
-							} 
-						catch (IOException e)
-							{
-							c = -1;
-							}
-						} while (c != ' ' && c != -1 && c != 0x0a);
-						// itt is vége a bekezdésnek, de a szót még fel kell dolgozni
-	
-					String s=sb.toString();
-					
-					Word w=new Word(s, paintFont.measureText(s));
-					words.add(w);
-	
-	//Toast.makeText(getContext(), "-" + s + "-", Toast.LENGTH_SHORT).show();
-	
-					} while (c != -1 && c != 0x0a);
-				paraSr.close();
-				fake = false;
-				}
-			catch(Exception e)
-				{
-				//Toast.makeText(getContext(), e.toString(), Toast.LENGTH_SHORT).show();			
-				fake = true;	
-				}			
-//Toast.makeText(getContext(), Integer.toString(words.size()) + " szó besorolva", Toast.LENGTH_SHORT).show();
-			}
-			
-		// Bekezdés szavainak alapján elkészíti a bekezdés sorait.
-		void renderLines()
-	 		{
-//Toast.makeText(getContext(), "RenderLines()-ben vagyok", Toast.LENGTH_SHORT).show();
-
-			lines = new ArrayList<Line>();
-			
-	 		Line line = null;
-	 		int wordCount = 0;
-			boolean ok = false;
-	
-			while (!ok) 
-				{
-	 			line = new Line();
- 				lines.add(line);
- 				ok = true;
-				
- 				// szavak hozzáadása, amíg befér
-		 		while ( wordCount < words.size() )
-		 			{
-					ok = line.addWord(wordCount );
-					
-					if (ok)
-						wordCount++;
-					else
-						break;
-					}
-		 		
-		 		// tényleges pozíció számítása
-		 		if (line.spaceCount>0 && !ok && line.justified)
-		 			{
-		 			line.spaceWidth = (getWidth() - line.textWidth - 0.1f) / line.spaceCount;
-		 			if (line.spaceWidth > spaceMax)
-		 				line.spaceWidth = spaceMin;
-		 			}
-		 		else
-		 			line.spaceWidth = spaceMin;
-		 		
-		 		float posx = 0;
-				for (int w=line.firstWord; w <= line.lastWord; w++)
-					{
-					words.get(w).posx = posx;
-					posx += words.get(w).width + line.spaceWidth;
-					}
-		 		
-				}
-					
-//Toast.makeText(getContext(), Integer.toString(lines.size()) + " sor kész", Toast.LENGTH_SHORT).show();
-			}
-		}
-		
-		
 	// Pozícionálásért felelõs részek
 	// A kiirashoz itt elo kell kesziteni a bekezdeseket, ott mar csak a kiirassal kelljen torodni
 	private int	linesInView = -1;

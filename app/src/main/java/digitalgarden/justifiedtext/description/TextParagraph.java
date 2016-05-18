@@ -9,19 +9,16 @@ import java.util.List;
 
 /**
  * TextParagraph
- * Paragraph: from the current position to the next '\r' or '\n'
- * (\n after \r and \r after \n is consumed, too)
+ * Paragraph: from the current position to the next '\r' 0x0A
  */
 public class TextParagraph
     {
+    // Can be empty, but cannot be null!
     List<TextWord> words;
     List<TextLine> lines;
-    boolean fake;
 
-    // Feldolgozza a bekezdés összes szavát, még sortörés nélkül
-    TextParagraph(int paraNo)
-        {
-        }
+    private float spaceMin;
+    private float spaceMax;
 
     private int read( PushbackReader reader )
         {
@@ -35,112 +32,74 @@ public class TextParagraph
             }
         }
 
-    private void unread( PushbackReader reader, int chr )
-        {
-        try
-            {
-            reader.unread( chr );
-            }
-        catch (IOException e)
-            {
-            ; // nothing to do, if io error happens
-            }
-        }
 
     /**
      * Reads all words from the paragraph into a new words list
      * @param reader reader to get text
      */
-    public void readParagraph( PushbackReader reader, Paint paintFont )
+    public void readParagraph( PushbackReader reader )
         {
+        // words should be deleted, or this routine should come into the constructor
         words = new ArrayList<>();
+
         int chr;
         StringBuilder builder = new StringBuilder();
 
 para:	while ( true )
             {
+            builder.setLength(0);
+
             // skip spaces (tabs and all chars bellow space are 'spaces')
             do
                 {
                 chr = read( reader );
 
-                if ( chr == -1 )
+                if ( chr == -1 || chr == 0x0A )
                     break para;
-                if ( chr == '\r' )
-                    {
-                    if ( (chr = read(reader)) != '\n' )
-                        unread( reader, chr );
-                    break para;
-                    }
-                if ( chr == '\n' )
-                    {
-                    if ( (chr = read(reader)) != '\r' )
-                        unread( reader, chr );
-                    break para;
-                    }
                 } while ( chr <= ' ' );
 
             // words
-            builder.setLength(0);
             do
                 {
                 builder.append( (char)chr );
                 chr = read( reader );
                 } while ( chr > ' ' );
 
-            String string=builder.toString();
-            TextWord w=new TextWord(string, paintFont.measureText(string));
-            words.add(w);
+            words.add( new TextWord( builder.toString() ) );
             }
         }
 
-    // Bekezdés szavainak alapján elkészíti a bekezdés sorait.
-    void renderLines()
+
+    /**
+     * All words are measured by paintFont
+     * @param paintFont paint to use for measure
+     */
+    public void measureWords( Paint paintFont )
         {
-//Toast.makeText(getContext(), "RenderLines()-ben vagyok", Toast.LENGTH_SHORT).show();
+        spaceMin = paintFont.measureText(".");
+        spaceMax = paintFont.measureText("ww");
 
-        lines = new ArrayList<Line>();
-
-        Line line = null;
-        int wordCount = 0;
-        boolean ok = false;
-
-        while (!ok)
+        for ( TextWord word : words )
             {
-            line = new Line();
-            lines.add(line);
-            ok = true;
-
-            // szavak hozzáadása, amíg befér
-            while ( wordCount < words.size() )
-                {
-                ok = line.addWord(wordCount );
-
-                if (ok)
-                    wordCount++;
-                else
-                    break;
-                }
-
-            // tényleges pozíció számítása
-            if (line.spaceCount>0 && !ok && line.justified)
-                {
-                line.spaceWidth = (getWidth() - line.textWidth - 0.1f) / line.spaceCount;
-                if (line.spaceWidth > spaceMax)
-                    line.spaceWidth = spaceMin;
-                }
-            else
-                line.spaceWidth = spaceMin;
-
-            float posx = 0;
-            for (int w=line.firstWord; w <= line.lastWord; w++)
-                {
-                words.get(w).posx = posx;
-                posx += words.get(w).width + line.spaceWidth;
-                }
-
+            word.measure( paintFont );
             }
+        }
 
-//Toast.makeText(getContext(), Integer.toString(lines.size()) + " sor kész", Toast.LENGTH_SHORT).show();
+
+    /**
+     * Render lines for the specified width
+     * @param width width of the view
+     */
+    public void renderLines( int width )
+        {
+        lines = new ArrayList<>();
+
+        int wordCount = 0;
+        while ( wordCount < words.size() )
+            {
+            TextLine line = new TextLine( words );
+            wordCount = line.render( wordCount, spaceMin, spaceMax, width );
+            lines.add( line );
+            }
         }
     }
