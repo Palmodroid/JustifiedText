@@ -3,7 +3,7 @@ package digitalgarden.justifiedtext.description;
 import android.graphics.Paint;
 
 import java.io.IOException;
-import java.io.PushbackReader;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +20,7 @@ public class TextParagraph
     private float spaceMin;
     private float spaceMax;
 
-    private int read( PushbackReader reader )
+    private int read( Reader reader )
         {
         try
             {
@@ -37,7 +37,7 @@ public class TextParagraph
      * Reads all words from the paragraph into a new words list
      * @param reader reader to get text
      */
-    public void readParagraph( PushbackReader reader )
+    public void readParagraph( Reader reader )
         {
         // words should be deleted, or this routine should come into the constructor
         words = new ArrayList<>();
