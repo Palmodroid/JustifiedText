@@ -10,7 +10,7 @@ public class TextLine
     private List<TextWord> words;
 
     // negative values: rendering was not started
-    private int firstWord = -1;
+    public int firstWord = -1;
     private int lastWord;
 
 

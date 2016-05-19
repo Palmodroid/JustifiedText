@@ -14,8 +14,8 @@ import java.util.List;
 public class TextParagraph
     {
     // Can be empty, but cannot be null!
-    List<TextWord> words;
-    List<TextLine> lines;
+    public List<TextWord> words;
+    public List<TextLine> lines;
 
     private float spaceMin;
     private float spaceMax;
@@ -90,7 +90,7 @@ para:	while ( true )
      * Render lines for the specified width
      * @param width width of the view
      */
-    public void renderLines( int width )
+    public int renderLines( int width )
         {
         lines = new ArrayList<>();
 
@@ -101,5 +101,7 @@ para:	while ( true )
             wordCount = line.render( wordCount, spaceMin, spaceMax, width );
             lines.add( line );
             }
+
+        return lines.size();
         }
     }

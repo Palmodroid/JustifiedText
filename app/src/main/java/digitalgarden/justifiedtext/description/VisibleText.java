@@ -1,7 +1,10 @@
 package digitalgarden.justifiedtext.description;
 
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 
+import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,18 +19,25 @@ import digitalgarden.justifiedtext.ParagraphAdapter;
  */
 public class VisibleText
     {
-    Reader reader;
+    private List<TextParagraph> paragraphs = new ArrayList<>();
+    private int loadedLines;
 
-    private List<TextParagraph> paragraphs;
-
-    private int linesInView;
+    // VIEW PARAMETERS
+    /**
+     * How many lines can be in the View?
+     * -1, while no view parameters are available
+     */
+    private int	linesInView = -1;
     private int width;
     private Paint fontPaint;
 
-    private int firstParagraph;
+    // SOURCE PARAMETERS
+    Reader reader;
+    /** -1, while no view parameters are available */
+    private int firstParagraph = -1;
     private int firstLineInView;
+    private int firstWordInView;
 
-    private int loadedLines;
 
 
     public VisibleText( Reader reader )
@@ -36,57 +46,63 @@ public class VisibleText
         }
 
 
-    public void setPosition( int firstPara, int firstWord )
+    public void setPosition( int firstParagraph, int firstWord )
         {
         loadedLines = 0;
+        paragraphs.clear();
 
-        firstParagraph = firstPara;
-        firstLineInView = 0;
-
-        linesInView = 0; // Már nem tiltott
-        setLinesInView(); // ez ugye eloszor tiltott, lehet h. csak 0 erteknel kellene beallitani??
-
-        firstWordInView = firstWord; // beallitas, ha van meret!
+        this.firstParagraph = firstParagraph;
+        this.firstLineInView = 0;
+        this.firstWordInView = firstWord;
 
         prepareParagraphs();
-        // egyebkent majd onSizeChanged beallitja
         }
 
 
-    public void setParameters( Paint fontPaint, int linesInView, int width )
+    public void setParameters( Paint fontPaint, int width, int height )
         {
-        this.linesInView = linesInView;
-        this.width = width;
         this.fontPaint = fontPaint;
+        this.width = width;
+        this.linesInView = countLinesInView( height );
+
+        prepareParagraphs();
+        }
+
+
+    private int countLinesInView( int height )
+        {
+        float fontAscent = fontPaint.ascent();
+        float fontDescent = fontPaint.descent();
+        float fontLeading = 5f;
+
+        return (int)(height / (-fontAscent + fontDescent + fontLeading)) + 1;
+        // the last 'broken' line is needed, too
         }
 
 
     public void prepareParagraphs()
         {
-        // na, ezt alaposan meg kellene nezni, mirt lesz tortszam??
-        if (linesInView <= 0)
+        // both postion and view data are needed
+        if ( linesInView < 0 || firstParagraph < 0 )
             return;
 
-        Paragraph para;
+        TextParagraph paragraph;
 
-        while (loadedLines < linesInView + firstLineInView || paragraphs.size()<2)
-            // két bekezdést mindig olvasson előre (egyébként ez csak akkor nem lehet meg, ha egyetlen soros a kép)
-            // b. verzó: onMeasure nem engedi két sor alá, de ez nehéz, mert a betűméret is lehet óriási.
+        while ( loadedLines < linesInView + firstLineInView )
             {
-            para = new Paragraph( firstParagraph + paragraphs.size() );
-            // na és ha nincs elég bekezdés?
-            if ( paragraphs.size() == 0 && para.fake)
+            paragraph = new TextParagraph();
+            try
                 {
-                firstParagraph = ParagraphAdapter.loadedParagraphsSize()-1;
+                paragraph.readParagraph( ParagraphAdapter.getParagraph( firstParagraph + paragraphs.size() ) );
                 }
-            // ez csak a legelejen tortenhet meg, minden 0, meg nincs betoltott paragraph
-            else
+            catch (IOException e)
                 {
-                para.renderLines();
-                paragraphs.add(para);
+                return; // No more paragraphs are available
+                }
 
-                loadedLines += para.lines.size();
-                }
+            paragraph.measureWords( fontPaint );
+            loadedLines += paragraph.renderLines( width );
+            paragraphs.add( paragraph );
             }
 
         // Ez nem kell a ciklusba, mer csak egyszer kellhet meghivni
@@ -109,8 +125,52 @@ public class VisibleText
             }
         }
 
+    public void drawText( Canvas canvas )
+        {
+        int paraPos = 0;
+        int linePos = firstLineInView;
 
+        float posy = -fontAscent;
 
+        for (int l=0; l < linesInView; l++)
+            {
+            line = paragraphs.get(paraPos).lines.get(linePos);
+            line.posy = posy;
+            for (int w=line.firstWord; w <= line.lastWord; w++)
+                {
+                word = paragraphs.get(paraPos).words.get(w);
 
+                if (w == selectedWord && paraPos == selectedParagraph)
+                    {
+                    paintAround.setColor(Color.YELLOW);
+                    around.set((int)word.posx, (int)(posy + fontAscent), (int)(word.posx + word.width), (int)(posy + fontDescent));
+                    canvas.drawRect(around, paintAround);
 
+                    paintFont.setColor( Color.YELLOW );
+
+                    // Nagyítás
+                    bigText = word.text;
+                    if (posy < getHeight()/4)
+                        bigy = getHeight() - 10f - bigFontDescent;
+                    else
+                        bigy = 10f - bigFontAscent;
+                    rectBigFont.set(10, (int)(bigy + bigFontAscent), (int) (10 + paintBigFont.measureText(bigText)), (int)(bigy + bigFontDescent));
+//Toast.makeText(getContext(), rectBigFont.toString(), Toast.LENGTH_SHORT).show();
+
+                    }
+                else
+                    paintFont.setColor(0xffffd4ab);
+
+                canvas.drawText(word.text, word.posx, posy, paintFont);
+                }
+            posy+= -fontAscent + fontDescent + fontLeading;
+
+            linePos++;
+            if (linePos >= paragraphs.get(paraPos).lines.size())
+                {
+                paraPos++;
+                linePos = 0;
+                }
+            }
+        }
     }
