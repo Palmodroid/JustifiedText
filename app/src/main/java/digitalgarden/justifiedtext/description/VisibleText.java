@@ -1,7 +1,7 @@
+
 package digitalgarden.justifiedtext.description;
 
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 
 import java.io.IOException;
@@ -38,6 +38,9 @@ public class VisibleText
     private int firstLineInView;
     private int firstWordInView;
 
+    private float fontAscent;
+    private float fontDescent;
+    private float fontLeading;
 
 
     public VisibleText( Reader reader )
@@ -71,9 +74,9 @@ public class VisibleText
 
     private int countLinesInView( int height )
         {
-        float fontAscent = fontPaint.ascent();
-        float fontDescent = fontPaint.descent();
-        float fontLeading = 5f;
+        fontAscent = fontPaint.ascent();
+        fontDescent = fontPaint.descent();
+        fontLeading = 5f;
 
         return (int)(height / (-fontAscent + fontDescent + fontLeading)) + 1;
         // the last 'broken' line is needed, too
@@ -127,50 +130,25 @@ public class VisibleText
 
     public void drawText( Canvas canvas )
         {
-        int paraPos = 0;
-        int linePos = firstLineInView;
+        float positionY = -fontAscent;
 
-        float posy = -fontAscent;
+        int paragraph = 0;
+        int line = firstLineInView;
 
         for (int l=0; l < linesInView; l++)
             {
-            line = paragraphs.get(paraPos).lines.get(linePos);
-            line.posy = posy;
-            for (int w=line.firstWord; w <= line.lastWord; w++)
+            while ( line >= paragraphs.get(paragraph).sizeOfLines() )
                 {
-                word = paragraphs.get(paraPos).words.get(w);
-
-                if (w == selectedWord && paraPos == selectedParagraph)
-                    {
-                    paintAround.setColor(Color.YELLOW);
-                    around.set((int)word.posx, (int)(posy + fontAscent), (int)(word.posx + word.width), (int)(posy + fontDescent));
-                    canvas.drawRect(around, paintAround);
-
-                    paintFont.setColor( Color.YELLOW );
-
-                    // Nagyítás
-                    bigText = word.text;
-                    if (posy < getHeight()/4)
-                        bigy = getHeight() - 10f - bigFontDescent;
-                    else
-                        bigy = 10f - bigFontAscent;
-                    rectBigFont.set(10, (int)(bigy + bigFontAscent), (int) (10 + paintBigFont.measureText(bigText)), (int)(bigy + bigFontDescent));
-//Toast.makeText(getContext(), rectBigFont.toString(), Toast.LENGTH_SHORT).show();
-
-                    }
-                else
-                    paintFont.setColor(0xffffd4ab);
-
-                canvas.drawText(word.text, word.posx, posy, paintFont);
+                paragraph++;
+                if ( paragraph >= paragraphs.size() )
+                    return;
+                line = 0;
                 }
-            posy+= -fontAscent + fontDescent + fontLeading;
 
-            linePos++;
-            if (linePos >= paragraphs.get(paraPos).lines.size())
-                {
-                paraPos++;
-                linePos = 0;
-                }
+            paragraphs.get(paragraph).getLine(line).draw(canvas, positionY, fontPaint);
+            positionY+= -fontAscent + fontDescent + fontLeading;
+
+            line++;
             }
         }
     }

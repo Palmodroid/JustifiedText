@@ -1,5 +1,8 @@
 package digitalgarden.justifiedtext.description;
 
+import android.graphics.Canvas;
+import android.graphics.Paint;
+
 import java.util.List;
 
 /**
@@ -71,13 +74,21 @@ public class TextLine
                 spaceWidth = spaceMin;
             }
 
-        float pos = 0;
-        for (int w = first; w <= lastWord; w++)
+        float positionX = 0;
+        for (int word = first; word <= lastWord; word++)
             {
-            words.get(w).setPosition(pos);
-            pos += words.get(w).getWidth() + spaceWidth;
+            words.get(word).setPosition(positionX);
+            positionX += words.get(word).getWidth() + spaceWidth;
             }
 
         return wordCursor;
+        }
+
+    public void draw(Canvas canvas, float positionY, Paint paint)
+        {
+        for ( int word = firstWord; word <= lastWord; word++ )
+            {
+            words.get(word).draw(canvas, positionY, paint);
+            }
         }
     }

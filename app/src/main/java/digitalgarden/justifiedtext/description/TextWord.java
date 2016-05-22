@@ -1,5 +1,6 @@
 package digitalgarden.justifiedtext.description;
 
+import android.graphics.Canvas;
 import android.graphics.Paint;
 
 /**
@@ -29,6 +30,11 @@ public class TextWord
     public void setPosition( float positionX )
         {
         this.positionX = positionX;
+        }
+
+    public void draw(Canvas canvas, float positionY, Paint paint)
+        {
+        canvas.drawText( text, positionX, positionY, paint);
         }
     }
 

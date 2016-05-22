@@ -1,11 +1,9 @@
 package digitalgarden.justifiedtext.description;
 
-import android.graphics.Paint;
-
-import java.io.IOException;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.List;
+import android.graphics.*;
+import digitalgarden.justifiedtext.scribe.*;
+import java.io.*;
+import java.util.*;
 
 /**
  * TextParagraph
@@ -20,18 +18,31 @@ public class TextParagraph
     private float spaceMin;
     private float spaceMax;
 
+    private boolean resendData = false;
+    private int readData = -1;
+    
     private int read( Reader reader )
         {
-        try
+        if (resendData)
+            resendData = false;
+        else
             {
-            return reader.read();
+            try
+                {
+                readData = reader.read();
+                }
+            catch (IOException e)
+                {
+                readData = -1;
+                }
             }
-        catch (IOException e)
-            {
-            return -1;
-            }
+        return readData;
         }
 
+    private void unRead()
+        {
+        resendData = true;
+        }
 
     /**
      * Reads all words from the paragraph into a new words list
@@ -47,26 +58,26 @@ public class TextParagraph
 
 para:	while ( true )
             {
-            builder.setLength(0);
-
             // skip spaces (tabs and all chars bellow space are 'spaces')
-            do
+            while ( (chr = read( reader )) <= ' ' )
                 {
-                chr = read( reader );
-
-                if ( chr == -1 || chr == 0x0A )
+                if ( chr == -1 || chr == 0x0a )
                     break para;
-                } while ( chr <= ' ' );
+                }
 
             // words
+            builder.setLength(0);    
             do
                 {
                 builder.append( (char)chr );
                 chr = read( reader );
                 } while ( chr > ' ' );
+            unRead();
 
             words.add( new TextWord( builder.toString() ) );
             }
+        Scribe.debug("Para: " + words);
+
         }
 
 
@@ -103,5 +114,16 @@ para:	while ( true )
             }
 
         return lines.size();
+        }
+
+
+    public int sizeOfLines()
+        {
+        return lines.size();
+        }
+
+    public TextLine getLine( int line )
+        {
+        return lines.get(line);
         }
     }
