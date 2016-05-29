@@ -35,7 +35,7 @@ public class JustifiedTextActivity extends Activity
 
             builder.append("[");
 
-            while ( (ch=jig.readByte()) != -1 )
+            while ( (ch=jig.read()) != -1 )
                 {
                 builder.append( (char)ch );
                 }

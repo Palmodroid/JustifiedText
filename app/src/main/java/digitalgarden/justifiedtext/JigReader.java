@@ -76,7 +76,8 @@ public class JigReader extends Reader
     public int readByte() throws IOException
         {
         checkNotClosed();
-
+		positionMoved();
+        
         while (blockPointer >= block[blockActive].length)
             {
             if (blockActive == 0)
@@ -104,7 +105,8 @@ public class JigReader extends Reader
     public int readByteBackward() throws IOException
         {
         checkNotClosed();
-
+        positionMoved();
+            
         blockPointer--;
 
         while ( blockPointer < 0 )
@@ -148,6 +150,31 @@ public class JigReader extends Reader
         }
 
 
+    private void positionMoved()
+    	{
+        unreadBuffer.clear();
+
+
+    	}
+    
+    
+    public boolean checkBom() throws IOException
+    	{
+        checkNotClosed();
+       
+        seek(0L);
+
+        if (read() == 0xFEFF)
+            return true;
+
+        seek(0L);
+
+        return false;
+
+
+    	}
+    
+    
     @Override
     public void close() throws IOException
         {
@@ -168,6 +195,8 @@ public class JigReader extends Reader
     public void seek( long newPosition ) throws IOException
         {
         checkNotClosed();
+        positionMoved();
+            
         for ( int n = 0; n < 1; n++ )
             {
             if ( newPosition >= block[n].offset && newPosition < block[n].offset + block[n].length)
@@ -232,7 +261,11 @@ public class JigReader extends Reader
         // Eventually: (F0) - (F4) can be used
         // (F5) - -8 (F8) - -1 (FF): invalid sequence
 
-        // FIRST BYTE: -1 EOF / 00-7F valid / 80-BF cannot be first
+        // FIRST BYTE: 
+ 				 // -1 EOF 
+				 // 00-7F valid one byte
+				 // 80-BF cannot be first - skip them
+ 				 // C0- 	 longer sequence
         int c1;
         do	{
             c1 = readByte();
@@ -245,7 +278,7 @@ public class JigReader extends Reader
         while (true)
             {
             // First byte: C0, C1 and F5-FF are invalid
-            if ( c1 < 0xC2 && c1 > 0xF5 )
+            if ( c1 < 0xC2 && c1 > 0xF4 )
                 {
                 return '*';				// invalid sequence
                 }
@@ -279,15 +312,56 @@ public class JigReader extends Reader
                 continue;
                 }
 
+			// First: E0 and Second: below A0 are invalid
             if (c1 == 0xE0 && c2 < 0xA0)
-                {						// érvénytelen tartomány!
+                {
                 return '*';
                 }
 
-            // 3 byte-os, érvényes szekvencia
-            // input 3 byte, output 4+6+6 = 16 bit
-            return ((c1 & 0x0f) << 12) | ((c2 & 0x3f) << 6) | (c3 & 0x3f);
-            }
+			// First: ED and Second: above 9F are utf-16 surrogate pairs
+            if (c1 == 0xED && c2 > 0x9F)
+                {
+                return '*';
+                }
+
+            // Valid three byte sequence
+ 			if (c1 < 0xF0)
+			// input 3 byte, output 4+6+6 = 16 bit
+            	return ((c1 & 0x0f) << 12) | ((c2 & 0x3f) << 6) | (c3 & 0x3f);
+            
+			// FOURTH BYTE
+			int c4 = readByte();
+ 			if (c4 < 0x80 )             // -1,00-7F should be treated as first byte
+                {
+                return c4;
+                }
+            if (c4 > 0xBF)              // C0-FF first byte of a longer sequence
+                {
+                c1 = c4;
+                continue;
+                }
+
+			// First: F0 and Second: below 90 are invalid
+            if (c1 == 0xF0 && c2 < 0x90)
+                {
+                return '*';
+                }
+
+			// First: F4 and Second: above 8F are too big
+            if (c1 == 0xF4 && c2 > 0x8F)
+                {
+                return '*';
+                }
+
+			// Valid four byte sequence
+			// input 4 byte, output 3+6+6+6 = 21 bit
+            int cp = ((c1 & 0x07) << 18) | ((c2 & 0x3f) << 12) | ((c3 & 0x3f) << 6) | (c4 & 0x3f);
+            
+			cp -= 0x10000;
+
+			unRead(0xDC00 | (cp & 0x3FF));
+			return 0xD800 | ((cp >> 10) & 0x3FF);
+			}
         }
 
 
