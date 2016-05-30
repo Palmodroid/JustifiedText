@@ -3,13 +3,14 @@ package digitalgarden.justifiedtext.description;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.os.Environment;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
-import digitalgarden.justifiedtext.ParagraphAdapter;
+import digitalgarden.justifiedtext.JigReader;
 
 /**
  * Visible parts of the text
@@ -19,8 +20,9 @@ import digitalgarden.justifiedtext.ParagraphAdapter;
  */
 public class VisibleText
     {
-    private List<TextParagraph> paragraphs = new ArrayList<>();
+    private List<TextParagraph> visibleParagraphs = new ArrayList<>();
     private int loadedLines;
+    private long lastPosition;
 
     // VIEW PARAMETERS
     /**
@@ -32,7 +34,7 @@ public class VisibleText
     private Paint fontPaint;
 
     // SOURCE PARAMETERS
-    Reader reader;
+    JigReader jigReader = null;
     /** -1, while no view parameters are available */
     private int firstParagraph = -1;
     private int firstLineInView;
@@ -43,16 +45,24 @@ public class VisibleText
     private float fontLeading;
 
 
-    public VisibleText( Reader reader )
+    public VisibleText( String fileName ) throws FileNotFoundException
         {
-        this.reader = reader;
+        this.jigReader =
+                new JigReader(Environment.getExternalStorageDirectory().getAbsolutePath()
+                + fileName);
         }
 
+    public void close() throws IOException
+        {
+        if ( jigReader != null )
+            jigReader.close();
+        }
 
     public void setPosition( int firstParagraph, int firstWord )
         {
         loadedLines = 0;
-        paragraphs.clear();
+        lastPosition = 0L;
+        visibleParagraphs.clear();
 
         this.firstParagraph = firstParagraph;
         this.firstLineInView = 0;
@@ -83,7 +93,7 @@ public class VisibleText
         }
 
 
-    public void prepareParagraphs()
+    private void prepareParagraphs()
         {
         // both postion and view data are needed
         if ( linesInView < 0 || firstParagraph < 0 )
@@ -96,16 +106,20 @@ public class VisibleText
             paragraph = new TextParagraph();
             try
                 {
-                paragraph.readParagraph( ParagraphAdapter.getParagraph( firstParagraph + paragraphs.size() ) );
+                lastPosition = paragraph.readParagraph( jigReader, lastPosition );
+
+                paragraph.measureWords( fontPaint );
+                loadedLines += paragraph.renderLines( width );
+                visibleParagraphs.add( paragraph );
+
+                if ( jigReader.isEof() )
+                    break;
                 }
             catch (IOException e)
                 {
                 return; // No more paragraphs are available
                 }
 
-            paragraph.measureWords( fontPaint );
-            loadedLines += paragraph.renderLines( width );
-            paragraphs.add( paragraph );
             }
 
         // Ez nem kell a ciklusba, mer csak egyszer kellhet meghivni
@@ -117,8 +131,8 @@ public class VisibleText
             // Mi a helyzet az üres sorokkal??
             // Ez a megoldás véd a túl nagy számoktól, mert olyankor beadja az utolsó sort.
             // Üres sorok esetén sincs gond: ott ugyan a 0. szó is "túl nagy", ezért az utolsó (0.) sort kapjuk meg
-            firstLineInView = paragraphs.get(0).lines.size()-1;
-            while ( firstWordInView  < paragraphs.get(0).lines.get(firstLineInView).firstWord )
+            firstLineInView = visibleParagraphs.get(0).lines.size()-1;
+            while ( firstWordInView  < visibleParagraphs.get(0).lines.get(firstLineInView).firstWord )
                 {
                 firstLineInView--;
                 }
@@ -137,15 +151,15 @@ public class VisibleText
 
         for (int l=0; l < linesInView; l++)
             {
-            while ( line >= paragraphs.get(paragraph).sizeOfLines() )
+            while ( line >= visibleParagraphs.get(paragraph).sizeOfLines() )
                 {
                 paragraph++;
-                if ( paragraph >= paragraphs.size() )
+                if ( paragraph >= visibleParagraphs.size() )
                     return;
                 line = 0;
                 }
 
-            paragraphs.get(paragraph).getLine(line).draw(canvas, positionY, fontPaint);
+            visibleParagraphs.get(paragraph).getLine(line).draw(canvas, positionY, fontPaint);
             positionY+= -fontAscent + fontDescent + fontLeading;
 
             line++;

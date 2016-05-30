@@ -1,9 +1,14 @@
 package digitalgarden.justifiedtext.description;
 
-import android.graphics.*;
-import digitalgarden.justifiedtext.scribe.*;
-import java.io.*;
-import java.util.*;
+import android.graphics.Paint;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.List;
+
+import digitalgarden.justifiedtext.JigReader;
+import digitalgarden.justifiedtext.scribe.Scribe;
 
 /**
  * TextParagraph
@@ -46,12 +51,14 @@ public class TextParagraph
 
     /**
      * Reads all words from the paragraph into a new words list
-     * @param reader reader to get text
+     * @param jigReader jigReader to get text
      */
-    public void readParagraph( Reader reader )
+    public long readParagraph( JigReader jigReader, long fromPosition ) throws IOException
         {
         // words should be deleted, or this routine should come into the constructor
         words = new ArrayList<>();
+
+        jigReader.seek( fromPosition );
 
         int chr;
         StringBuilder builder = new StringBuilder();
@@ -59,7 +66,7 @@ public class TextParagraph
 para:	while ( true )
             {
             // skip spaces (tabs and all chars bellow space are 'spaces')
-            while ( (chr = read( reader )) <= ' ' )
+            while ( (chr = read( jigReader )) <= ' ' )
                 {
                 if ( chr == -1 || chr == 0x0a )
                     break para;
@@ -70,7 +77,7 @@ para:	while ( true )
             do
                 {
                 builder.append( (char)chr );
-                chr = read( reader );
+                chr = read( jigReader );
                 } while ( chr > ' ' );
             unRead();
 
@@ -78,6 +85,7 @@ para:	while ( true )
             }
         Scribe.debug("Para: " + words);
 
+        return jigReader.getFilePointer();
         }
 
 

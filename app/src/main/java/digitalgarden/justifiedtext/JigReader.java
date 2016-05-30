@@ -13,9 +13,15 @@ import java.util.List;
  */
 public class JigReader extends Reader
     {
+    /**
+     * Random access file gives random access to the file,
+     * but raf itself is not buffered
+     */
     private RandomAccessFile raf;
 
-
+    /**
+     * Two blocks are used to store data forward and backward
+     */
     private class Block
         {
         static final int SIZE = 8;
@@ -48,9 +54,9 @@ public class JigReader extends Reader
     private Block[] block = new Block[2];
 
 
-    private int blockActive = 0;
+    private int activeBlock = 0;
 
-    private int blockPointer = 0;
+    private int pointerInBlock = 0;
 
     private List<Integer> unreadBuffer = new ArrayList<>();
 
@@ -78,27 +84,27 @@ public class JigReader extends Reader
         checkNotClosed();
 		positionMoved();
         
-        while (blockPointer >= block[blockActive].length)
+        while (pointerInBlock >= block[activeBlock].length)
             {
-            if (blockActive == 0)
+            if (activeBlock == 0)
                 {
-                blockActive++;
-                blockPointer = 0;
+                activeBlock++;
+                pointerInBlock = 0;
                 }
-            else // blockActive == 1
+            else // activeBlock == 1
                 {
-                if (block[blockActive].offset + blockPointer >= raf.length() )
+                if (block[activeBlock].offset + pointerInBlock >= raf.length() )
                     return -1; // EOF
 
                 block[0] = block[1];
 
                 block[1] = new Block(block[0].offset + block[0].length);
                 block[1].readBlock();
-                // blockActive remains 1
-                blockPointer = 0;
+                // activeBlock remains 1
+                pointerInBlock = 0;
                 }
             }
-        return block[blockActive].data[blockPointer++] & 0xFF;
+        return block[activeBlock].data[pointerInBlock++] & 0xFF;
         }
 
 
@@ -107,20 +113,20 @@ public class JigReader extends Reader
         checkNotClosed();
         positionMoved();
             
-        blockPointer--;
+        pointerInBlock--;
 
-        while ( blockPointer < 0 )
+        while ( pointerInBlock < 0 )
             {
-            if (blockActive == 1)
+            if (activeBlock == 1)
                 {
-                blockActive--;
-                blockPointer = block[blockActive].length-1;
+                activeBlock--;
+                pointerInBlock = block[activeBlock].length-1;
                 }
-            else // blockActive == 0
+            else // activeBlock == 0
                 {
-                if ( block[blockActive].offset == 0L )
+                if ( block[activeBlock].offset == 0L )
                     {
-                    blockPointer = -1;
+                    pointerInBlock = -1;
                     return -1; // BOF
                     }
 
@@ -136,10 +142,10 @@ public class JigReader extends Reader
                     block[0] = new Block( 0 );
                     block[0].readBlock( (int)block[1].offset );
                     }
-                blockPointer = block[0].length-1;
+                pointerInBlock = block[0].length-1;
                 }
             }
-        return block[blockActive].data[blockPointer] & 0xFF;
+        return block[activeBlock].data[pointerInBlock] & 0xFF;
         }
 
 
@@ -201,9 +207,9 @@ public class JigReader extends Reader
             {
             if ( newPosition >= block[n].offset && newPosition < block[n].offset + block[n].length)
                 {
-                blockActive = n;
+                activeBlock = n;
                 // blockpointer cannot be bigger than length/SIZE
-                blockPointer = (int)(newPosition - block[n].offset);
+                pointerInBlock = (int)(newPosition - block[n].offset);
                 return;
                 }
             }
@@ -218,14 +224,14 @@ public class JigReader extends Reader
 
         block[0] = new Block( newPosition );
         block[1] = new Block( newPosition );
-        blockPointer = 0;
+        pointerInBlock = 0;
         }
 
 
     public long getFilePointer() throws IOException
         {
         checkNotClosed();
-        return block[blockActive].offset + blockPointer;
+        return block[activeBlock].offset + pointerInBlock;
         }
 
 
@@ -238,11 +244,11 @@ public class JigReader extends Reader
     public boolean isEof() throws IOException
         {
         checkNotClosed();
-        return block[blockActive].offset + blockPointer >= raf.length();
+        return block[activeBlock].offset + pointerInBlock >= raf.length(); // ?? && unreadBuffer.isEmpty();
         }
 
 
-    // Beolvasás - magasszintű, URF-8 kódolással - a beolvasás readByte()-on keresztül történik
+    // Read UTF-8 coded character
     @Override
     public int read() throws IOException
         {
@@ -252,20 +258,20 @@ public class JigReader extends Reader
             }
 
         // UTF-8:
-        // 1 byte: 0-127 (7F)
-        // 2 byte: -64   (C2) - -33 (DF) , -128 (80) - -65 (BF)
+        // 1 byte: 00 - 7F
+        // 2 byte: C2 - DF, 80 - BF
         // (C0 and C1 are invalid)
-        // 3 byte: -32   (E0) - -17 (EF) , -128 - -65, -128 - -65
-
-        // 4 byte: -16 (F0) -  -9 (F7) , -128 - -65, -128 - -65, -128 - -65
-        // Eventually: (F0) - (F4) can be used
-        // (F5) - -8 (F8) - -1 (FF): invalid sequence
+        // 3 byte: E0 - EF, 80 - BF, 80 - BF
+        // 4 byte: F0 - F7, 80 - BF, 80 - BF, 80 - BF
+        // Eventually:
+        //         F0 - F4 can be used
+        //         F5 - F8 - FF: invalid sequence
 
         // FIRST BYTE: 
- 				 // -1 EOF 
-				 // 00-7F valid one byte
-				 // 80-BF cannot be first - skip them
- 				 // C0- 	 longer sequence
+        // -1 EOF
+        // 00-7F valid one byte
+        // 80-BF cannot be first - skip them
+        // C0- 	 longer sequence
         int c1;
         do	{
             c1 = readByte();
@@ -430,7 +436,7 @@ public class JigReader extends Reader
     public void mark(int readLimit) throws IOException
         {
         checkNotClosed();
-        markedPosition = block[blockActive].offset + blockPointer;
+        markedPosition = block[activeBlock].offset + pointerInBlock;
         }
 
 
