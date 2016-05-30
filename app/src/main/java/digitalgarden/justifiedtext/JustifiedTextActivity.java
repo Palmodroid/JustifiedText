@@ -34,7 +34,7 @@ public class JustifiedTextActivity extends Activity
         super.onResume();
         try
             {
-            visibleText = new VisibleText( "proba.txt");
+            visibleText = new VisibleText( "//proba.txt");
             justText.setVisibleText( visibleText, 0, 0 );
             }
         catch (FileNotFoundException e)
