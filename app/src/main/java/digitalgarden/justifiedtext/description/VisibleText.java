@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.os.Environment;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public class VisibleText
 
     // SOURCE PARAMETERS
     JigReader jigReader = null;
+
     /** -1, while no view parameters are available */
     private int firstParagraph = -1;
     private int firstLineInView;
@@ -47,9 +49,9 @@ public class VisibleText
 
     public VisibleText( String fileName ) throws FileNotFoundException
         {
+        File file = new File( Environment.getExternalStorageDirectory(), fileName );
         this.jigReader =
-                new JigReader(Environment.getExternalStorageDirectory().getAbsolutePath()
-                + fileName);
+                new JigReader( file );
         }
 
     public void close() throws IOException

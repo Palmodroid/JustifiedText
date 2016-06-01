@@ -3,7 +3,6 @@ package digitalgarden.justifiedtext.description;
 import android.graphics.Paint;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,31 +22,6 @@ public class TextParagraph
     private float spaceMin;
     private float spaceMax;
 
-    private boolean resendData = false;
-    private int readData = -1;
-    
-    private int read( Reader reader )
-        {
-        if (resendData)
-            resendData = false;
-        else
-            {
-            try
-                {
-                readData = reader.read();
-                }
-            catch (IOException e)
-                {
-                readData = -1;
-                }
-            }
-        return readData;
-        }
-
-    private void unRead()
-        {
-        resendData = true;
-        }
 
     /**
      * Reads all words from the paragraph into a new words list
@@ -66,7 +40,7 @@ public class TextParagraph
 para:	while ( true )
             {
             // skip spaces (tabs and all chars bellow space are 'spaces')
-            while ( (chr = read( jigReader )) <= ' ' )
+            while ( (chr = jigReader.readWithoutException()) <= ' ' )
                 {
                 if ( chr == -1 || chr == 0x0a )
                     break para;
@@ -77,9 +51,9 @@ para:	while ( true )
             do
                 {
                 builder.append( (char)chr );
-                chr = read( jigReader );
+                chr = jigReader.readWithoutException();
                 } while ( chr > ' ' );
-            unRead();
+            jigReader.unRead( chr );
 
             words.add( new TextWord( builder.toString() ) );
             }

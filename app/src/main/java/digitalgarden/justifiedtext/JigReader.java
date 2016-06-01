@@ -248,6 +248,19 @@ public class JigReader extends Reader
         }
 
 
+    public int readWithoutException()
+        {
+        try
+            {
+            return read();
+            }
+        catch (IOException e)
+            {
+            return -1; // Simulate EOF
+            }
+        }
+
+
     // Read UTF-8 coded character
     @Override
     public int read() throws IOException

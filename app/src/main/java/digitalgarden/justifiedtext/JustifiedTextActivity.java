@@ -13,7 +13,7 @@ public class JustifiedTextActivity extends Activity
     {
 
     private EditText editText;
-    private JustifiedTextView justText;
+    private JustifiedTextView justifiedTextView;
 
     private VisibleText visibleText = null;
 
@@ -25,7 +25,7 @@ public class JustifiedTextActivity extends Activity
         setContentView(R.layout.activity_justified_text);
 
         editText = (EditText) findViewById(R.id.editText);
-        justText = (JustifiedTextView) findViewById(R.id.justText);
+        justifiedTextView = (JustifiedTextView) findViewById(R.id.justText);
         }
 
     @Override
@@ -35,7 +35,7 @@ public class JustifiedTextActivity extends Activity
         try
             {
             visibleText = new VisibleText( "//proba.txt");
-            justText.setVisibleText( visibleText, 0, 0 );
+            justifiedTextView.setVisibleText( visibleText, 0, 0 );
             }
         catch (FileNotFoundException e)
             {
