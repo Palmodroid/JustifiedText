@@ -10,8 +10,10 @@ import digitalgarden.justifiedtext.JigReader;
 import digitalgarden.justifiedtext.scribe.Scribe;
 
 /**
- * TextParagraph
- * Paragraph: from the current position to the next '\r' 0x0A
+ * TextParagraph text between '\r' 0x0A-s.
+ * Actually this means text between (including) current position and the next 0x0A
+ * Reads all words from this paragraphs, measures them and then renders lines from the words.
+ * After this point these "virtual" lines are used. Paragraph only provides its lines.
  */
 public class TextParagraph
     {
@@ -19,20 +21,23 @@ public class TextParagraph
     public List<TextWord> words;
     public List<TextLine> lines;
 
+    private long filePosition;
+
     private float spaceMin;
     private float spaceMax;
 
 
     /**
-     * Reads all words from the paragraph into a new words list
+     * Reads all words from the paragraph into a new word-list
      * @param jigReader jigReader to get text
      */
     public long readParagraph( JigReader jigReader, long fromPosition ) throws IOException
         {
         // words should be deleted, or this routine should come into the constructor
         words = new ArrayList<>();
+        filePosition = fromPosition;
 
-        jigReader.seek( fromPosition );
+        jigReader.seek( filePosition );
 
         int chr;
         StringBuilder builder = new StringBuilder();

@@ -25,15 +25,6 @@ public class VisibleText
     private int loadedLines;
     private long lastPosition;
 
-    // VIEW PARAMETERS
-    /**
-     * How many lines can be in the View?
-     * -1, while no view parameters are available
-     */
-    private int	linesInView = -1;
-    private int width;
-    private Paint fontPaint;
-
     // SOURCE PARAMETERS
     JigReader jigReader = null;
 
@@ -45,6 +36,18 @@ public class VisibleText
     private float fontAscent;
     private float fontDescent;
     private float fontLeading;
+
+    private float lineHeight;
+
+    // VIEW PARAMETERS
+    /**
+     * How many lines can be in the View?
+     * -1, while no view parameters are available
+     */
+    private int	linesInView = -1;
+    private int width;
+    private int height;
+    private Paint fontPaint;
 
 
     public VisibleText( String fileName ) throws FileNotFoundException
@@ -70,6 +73,8 @@ public class VisibleText
         this.firstLineInView = 0;
         this.firstWordInView = firstWord;
 
+        this.linesInView = 100;
+
         prepareParagraphs();
         }
 
@@ -78,20 +83,15 @@ public class VisibleText
         {
         this.fontPaint = fontPaint;
         this.width = width;
-        this.linesInView = countLinesInView( height );
+        this.height = height;
 
-        prepareParagraphs();
-        }
-
-
-    private int countLinesInView( int height )
-        {
         fontAscent = fontPaint.ascent();
         fontDescent = fontPaint.descent();
         fontLeading = 5f;
 
-        return (int)(height / (-fontAscent + fontDescent + fontLeading)) + 1;
-        // the last 'broken' line is needed, too
+        this.lineHeight = -fontAscent + fontDescent + fontLeading;
+
+        prepareParagraphs();
         }
 
 
@@ -151,7 +151,7 @@ public class VisibleText
         int paragraph = 0;
         int line = firstLineInView;
 
-        for (int l=0; l < linesInView; l++)
+        while ( positionY < height )
             {
             while ( line >= visibleParagraphs.get(paragraph).sizeOfLines() )
                 {
@@ -161,8 +161,13 @@ public class VisibleText
                 line = 0;
                 }
 
-            visibleParagraphs.get(paragraph).getLine(line).draw(canvas, positionY, fontPaint);
-            positionY+= -fontAscent + fontDescent + fontLeading;
+            int lineType = visibleParagraphs.get(paragraph).getLine(line).draw(canvas, positionY, fontPaint);
+            if ( lineType == TextLine.LINE_NORMAL )
+                positionY+= lineHeight;
+            else if (lineType == TextLine.LINE_EMPTY )
+                positionY += 10f;
+            else // LINE_LAST
+                positionY += lineHeight + 10f;
 
             line++;
             }
