@@ -152,7 +152,7 @@ public class JigReader extends Reader
     private void checkNotClosed() throws IOException
         {
         if (raf == null)
-            throw new IOException("RandomAccessReader already closed!");
+            throw new IOException("JigReader already closed!");
         }
 
 

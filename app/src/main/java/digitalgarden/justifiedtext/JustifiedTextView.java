@@ -84,7 +84,7 @@ public class JustifiedTextView extends View
     public void setVisibleText( VisibleText visibleText, int firstParagraph, int firstWord )
         {
         this.visibleText = visibleText;
-        this.visibleText.setPosition( firstParagraph, firstWord );
+        this.visibleText.setFilePosition( firstParagraph, firstWord );
 
         if ( getHeight() > 0 ) //
             {

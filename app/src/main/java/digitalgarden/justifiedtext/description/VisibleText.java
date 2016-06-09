@@ -2,7 +2,9 @@
 package digitalgarden.justifiedtext.description;
 
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.os.Environment;
 
 import java.io.File;
@@ -16,17 +18,119 @@ import digitalgarden.justifiedtext.JigReader;
 /**
  * Visible parts of the text
  * This can be started:
- * - before View is calculated (setPosition() can be called before)
+ * - before View is calculated (setFilePosition() can be called before)
  * - after View is calculated (setParameters() will be called after)
  */
 public class VisibleText
     {
+    // SOURCE - opened by constructor, should be closed by close()
+    JigReader jigReader = null;
+
+
+    // DEFAULT values
+    private Paint fontPaint = new Paint();
+
+    // Values get from view
+    private int viewWidth = -1;
+    private int viewHeight = -1;
+    private int viewMargin = -1;
+
+
+    private void checkNotClosed() throws IOException
+        {
+        if (jigReader == null)
+            throw new IOException("JigReader already closed!");
+        }
+
+
+    public VisibleText( String fileName ) throws FileNotFoundException
+        {
+        File file = new File( Environment.getExternalStorageDirectory(), fileName );
+        this.jigReader =
+            new JigReader( file );
+
+        setFontSize( 20f );
+        setFontColor( Color.BLACK );
+        }
+
+    public void close() throws IOException
+        {
+        checkNotClosed();
+        try
+            {
+            jigReader.close();
+            }
+        finally
+            {
+            jigReader = null;
+            }
+        }
+
+    public void setFontTypeface(Typeface typeface)
+        {
+        fontPaint.setTypeface( typeface );
+        }
+
+    public void setFontSize( float textSize )
+        {
+        fontPaint.setTextSize( textSize );
+        }
+
+    public void setFontColor( int color )
+        {
+        fontPaint.setColor( color );
+        }
+
+    public void setViewParameters( int viewWidth, int viewHeight, int viewMargin )
+        {
+        this.viewWidth = viewWidth;
+        this.viewHeight = viewHeight;
+        this.viewMargin = viewMargin;
+
+        // automatically show text, if textPosiion is given
+        }
+
+    public void setFilePosition( long filePosition ) throws IOException
+        {
+        checkNotClosed();
+
+        jigReader.seek( filePosition );
+
+        int c;
+        while( (c = jigReader.readByteBackward()) != -1)
+            {
+            if ( c == 0x0A )
+                {
+                jigReader.readByte();
+                break;
+                }
+            }
+        // At this point we are at the beginning of a paragraph, containing filePosition
+
+
+
+
+
+        loadedLines = 0;
+        lastPosition = 0L;
+        visibleParagraphs.clear();
+
+        this.firstParagraph = firstParagraph;
+        this.firstLineInView = 0;
+        this.firstWordInView = firstWord;
+
+        this.linesInView = 100;
+
+        prepareParagraphs();
+        }
+
+
+
+
+
     private List<TextParagraph> visibleParagraphs = new ArrayList<>();
     private int loadedLines;
     private long lastPosition;
-
-    // SOURCE PARAMETERS
-    JigReader jigReader = null;
 
     /** -1, while no view parameters are available */
     private int firstParagraph = -1;
@@ -45,54 +149,8 @@ public class VisibleText
      * -1, while no view parameters are available
      */
     private int	linesInView = -1;
-    private int width;
-    private int height;
-    private Paint fontPaint;
 
 
-    public VisibleText( String fileName ) throws FileNotFoundException
-        {
-        File file = new File( Environment.getExternalStorageDirectory(), fileName );
-        this.jigReader =
-                new JigReader( file );
-        }
-
-    public void close() throws IOException
-        {
-        if ( jigReader != null )
-            jigReader.close();
-        }
-
-    public void setPosition( int firstParagraph, int firstWord )
-        {
-        loadedLines = 0;
-        lastPosition = 0L;
-        visibleParagraphs.clear();
-
-        this.firstParagraph = firstParagraph;
-        this.firstLineInView = 0;
-        this.firstWordInView = firstWord;
-
-        this.linesInView = 100;
-
-        prepareParagraphs();
-        }
-
-
-    public void setParameters( Paint fontPaint, int width, int height )
-        {
-        this.fontPaint = fontPaint;
-        this.width = width;
-        this.height = height;
-
-        fontAscent = fontPaint.ascent();
-        fontDescent = fontPaint.descent();
-        fontLeading = 5f;
-
-        this.lineHeight = -fontAscent + fontDescent + fontLeading;
-
-        prepareParagraphs();
-        }
 
 
     private void prepareParagraphs()
@@ -102,6 +160,33 @@ public class VisibleText
             return;
 
         TextParagraph paragraph;
+        
+        while ( heightOfText < viewHeight)
+            {
+            paragraph = new TextParagraph();
+            try
+                {
+                lastPosition = paragraph.readParagraph( jigReader, lastPosition );
+
+                paragraph.measureWords( fontPaint );
+                loadedLines += paragraph.renderLines(viewWidth);
+                visibleParagraphs.add( paragraph );
+
+                if ( jigReader.isEof() )
+                    break;
+                }
+            catch (IOException e)
+                {
+                return; // No more paragraphs are available
+                }
+                
+                
+                
+                
+            }
+        
+        
+        
 
         while ( loadedLines < linesInView + firstLineInView )
             {
@@ -111,7 +196,7 @@ public class VisibleText
                 lastPosition = paragraph.readParagraph( jigReader, lastPosition );
 
                 paragraph.measureWords( fontPaint );
-                loadedLines += paragraph.renderLines( width );
+                loadedLines += paragraph.renderLines(viewWidth);
                 visibleParagraphs.add( paragraph );
 
                 if ( jigReader.isEof() )
@@ -126,7 +211,7 @@ public class VisibleText
 
         // Ez nem kell a ciklusba, mer csak egyszer kellhet meghivni
         // inkabb megegyszer meghivjuk onmagat, mert lehet,h. nincs eleg sor
-        // jobb lenne inkabb ket setPosition - egy ha nincs meret, egy, ha van
+        // jobb lenne inkabb ket setFilePosition - egy ha nincs meret, egy, ha van
         if (firstWordInView >= 0)
             {
             // Ez a rész állítja be a megfelelő szót
@@ -151,7 +236,7 @@ public class VisibleText
         int paragraph = 0;
         int line = firstLineInView;
 
-        while ( positionY < height )
+        while ( positionY < viewHeight)
             {
             while ( line >= visibleParagraphs.get(paragraph).sizeOfLines() )
                 {
