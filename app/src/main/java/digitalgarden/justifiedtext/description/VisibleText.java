@@ -105,23 +105,10 @@ public class VisibleText
                 break;
                 }
             }
+
+        lastPosition = jigReader.getFilePointer();
+
         // At this point we are at the beginning of a paragraph, containing filePosition
-
-
-
-
-
-        loadedLines = 0;
-        lastPosition = 0L;
-        visibleParagraphs.clear();
-
-        this.firstParagraph = firstParagraph;
-        this.firstLineInView = 0;
-        this.firstWordInView = firstWord;
-
-        this.linesInView = 100;
-
-        prepareParagraphs();
         }
 
 
@@ -129,59 +116,80 @@ public class VisibleText
 
 
     private List<TextParagraph> visibleParagraphs = new ArrayList<>();
-    private int loadedLines;
+
     private long lastPosition;
 
-    /** -1, while no view parameters are available */
-    private int firstParagraph = -1;
-    private int firstLineInView;
-    private int firstWordInView;
-
-    private float fontAscent;
-    private float fontDescent;
-    private float fontLeading;
-
-    private float lineHeight;
-
-    // VIEW PARAMETERS
-    /**
-     * How many lines can be in the View?
-     * -1, while no view parameters are available
-     */
-    private int	linesInView = -1;
+    private int textHeight = 0;
 
 
-
-
-    private void prepareParagraphs()
+    private void prepareText()
         {
+        TextParagraph paragraph;
+
+        while ( textHeight < viewHeight - 2 * viewMargin )
+            {
+            paragraph = new TextParagraph();
+            lastPosition = paragraph.readParagraph( jigReader, lastPosition );
+
+            paragraph.measureWords( fontPaint );
+            paragraph.renderLines(viewWidth);
+            visibleParagraphs.add( paragraph );
+
+            // Find the first line
+            if ( firstLine == -1 )
+                {
+                for ( int l = paragraph.sizeOfLines() - 1; l >0 ; l-- )
+                    {
+                    if ( position > paragraph.getLine( l ).getPosition() )
+                        break;
+                    }
+
+                firstLine = l;
+                }
+
+
+
+            for ( int l = 0; l < paragraph.sizeOfLines(); l++ )
+                {
+                textHeight += paragraph.getLine( l ).getHeight();
+
+                if ( textHeight > viewHeight - 2 * viewMargin )
+                    {
+                    lastLine = l;
+                    break;
+                    }
+
+                }
+
+
+
+
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         // both postion and view data are needed
         if ( linesInView < 0 || firstParagraph < 0 )
             return;
 
-        TextParagraph paragraph;
-        
         while ( heightOfText < viewHeight)
             {
-            paragraph = new TextParagraph();
-            try
-                {
-                lastPosition = paragraph.readParagraph( jigReader, lastPosition );
 
-                paragraph.measureWords( fontPaint );
-                loadedLines += paragraph.renderLines(viewWidth);
-                visibleParagraphs.add( paragraph );
-
-                if ( jigReader.isEof() )
-                    break;
-                }
-            catch (IOException e)
-                {
-                return; // No more paragraphs are available
-                }
-                
-                
-                
                 
             }
         
