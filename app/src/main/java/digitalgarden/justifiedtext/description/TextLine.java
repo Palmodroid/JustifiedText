@@ -40,6 +40,17 @@ public class TextLine
 
 
     /**
+     * File pointer of the line (== first word of the line) or -1L, if line is empty
+     */
+    public long getFilePointer()
+        {
+        if ( words.isEmpty() )
+            return -1L; // ??
+        return words.get(firstWord).getFilePointer();
+        }
+
+
+    /**
      * Renders line: adds words from paragraph and justifies them
      * @param startWord start with this word (among the words of the paragraph)
      * @param spaceMin minimum space (in pixels) between words

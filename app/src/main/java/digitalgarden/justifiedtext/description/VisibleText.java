@@ -94,6 +94,8 @@ public class VisibleText
         {
         checkNotClosed();
 
+        firstLinePointer = filePosition;
+
         jigReader.seek( filePosition );
 
         int c;
@@ -116,6 +118,10 @@ public class VisibleText
 
 
     private List<TextParagraph> visibleParagraphs = new ArrayList<>();
+
+    private long firstLinePointer;
+
+    private int firstLine = -1;
 
     private long lastPosition;
 
@@ -140,7 +146,7 @@ public class VisibleText
                 {
                 for ( int l = paragraph.sizeOfLines() - 1; l >0 ; l-- )
                     {
-                    if ( position > paragraph.getLine( l ).getPosition() )
+                    if ( firstLinePointer > paragraph.getLine( l ).getFilePointer() )
                         break;
                     }
 

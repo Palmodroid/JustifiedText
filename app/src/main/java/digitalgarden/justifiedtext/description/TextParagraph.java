@@ -21,8 +21,6 @@ public class TextParagraph
     public List<TextWord> words;
     public List<TextLine> lines;
 
-    private long filePosition;
-
     private float spaceMin;
     private float spaceMax;
 
@@ -35,11 +33,10 @@ public class TextParagraph
         {
         // words should be deleted, or this routine should come into the constructor
         words = new ArrayList<>();
-        filePosition = fromPosition;
-
-        jigReader.seek( filePosition );
+        jigReader.seek( fromPosition );
 
         int chr;
+        long wordPointer;
         StringBuilder builder = new StringBuilder();
 
 para:	while ( true )
@@ -51,8 +48,9 @@ para:	while ( true )
                     break para;
                 }
 
-            // words
-            builder.setLength(0);    
+            // words - this could be inside wordText constructor
+            wordPointer = jigReader.getFilePointer() - 1; // chr was read already
+            builder.setLength(0);
             do
                 {
                 builder.append( (char)chr );
@@ -60,7 +58,7 @@ para:	while ( true )
                 } while ( chr > ' ' );
             jigReader.unRead( chr );
 
-            words.add( new TextWord( builder.toString() ) );
+            words.add( new TextWord( wordPointer, builder.toString() ) );
             }
         Scribe.debug("Para: " + words);
 

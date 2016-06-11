@@ -11,6 +11,9 @@ public class TextWord
     // text of the word - between to (white)spaces
     private String text;
 
+    // position of the word inside the text-file
+    private long filePointer;
+
     // width of the word in pixels
     private float width;
 
@@ -22,9 +25,19 @@ public class TextWord
      * Constructor - called by TextParagraph
      * @param text text of the word
      */
-    TextWord( String text )
+    TextWord( long filePointer, String text )
         {
+        this.filePointer = filePointer;
         this.text = text;
+        }
+
+
+    /**
+     * File pointer of the word
+     */
+    public long getFilePointer()
+        {
+        return filePointer;
         }
 
 
@@ -40,7 +53,6 @@ public class TextWord
 
     /**
      * Returns previously measured (measure()) width - used by TextLine
-     * @return
      */
     public float getWidth()
         {
