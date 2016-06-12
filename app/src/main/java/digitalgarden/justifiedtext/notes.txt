@@ -1,0 +1,32 @@
+Justified Text
+
+A program egy txt file tetszőleges pozíciójáról olvas be szöveget, melyet sorkizártan jelenít meg.
+
+A szöveg alapja a bekezdés (paragraph). A bekezdéseket 0x0A kód (vagy EOF) zárja le.
+Minden bekezdés szavakból áll össze, melyeket szóközök választanak el. A program értelmezése szerint
+a szóköz minden 0x20, és az alatta lévő karakterek (kivéve a 0x0A és EOF kódot).
+Ez a szöveg valós felépítését jelenti.
+
+Létezik azonban egy virtuális felépítés is, melyben a bekezdés szavait a megjelenítőnek megfelelő
+hosszúságú sorokba rendezzük.
+
+A látott szöveg részletes feldolgozásra kerül:
+
+A visibleParagraphs lista a látott bekezdéseket tartalmazza.
+Mivel nem minden sor kerül megjelenítésre:
+firstLine - a legelső bekezdés első megjelenített sora,
+lastLine - a legutolsó bekezdés utolsó megjelnített sora.
+
+Sormagassággal kapcsolatos beállítások:
+
+A sormagasság adatait maga a VisibleText osztály határozza meg, a "sor" nem tudja magáról,
+hogy milyen magas.
+- fontAscent (negatív érték) - az alapvonal feletti kiterjedés
+- fontDescent - az alapvonal alatti kiterjedés
+
+A megjelenítés - minden sortípusra - -fontAscent y pozícióban kezdődik.
+A karakterek kiterjedését fontAscent és fontDescent adja meg együtt.
+Normál sorok esetében ehhez hozzáadódik egy fontLeading érték,
+Utolsó sorok esetében a fontLeading érték nagyobb.
+Üres sorok esetében a teljes köz kisebb. Arra figyelni kell, hogy ezek a sorok is fontAscent
+magasságban kezdődnek.

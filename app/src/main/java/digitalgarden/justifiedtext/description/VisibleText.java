@@ -111,6 +111,28 @@ public class VisibleText
         lastPosition = jigReader.getFilePointer();
 
         // At this point we are at the beginning of a paragraph, containing filePosition
+
+        TextParagraph paragraph = new TextParagraph();
+        lastPosition = paragraph.readParagraph( jigReader, lastPosition );
+
+        paragraph.measureWords( fontPaint );
+        paragraph.renderLines(viewWidth);
+        visibleParagraphs.add( paragraph );
+
+        // Find the first line
+        if ( firstLine == -1 )
+            {
+            for ( int l = paragraph.sizeOfLines() - 1; l >0 ; l-- )
+                {
+                if ( firstLinePointer > paragraph.getLine( l ).getFilePointer() )
+                    break;
+                }
+
+            firstLine = l;
+            }
+
+
+
         }
 
 
@@ -125,121 +147,52 @@ public class VisibleText
 
     private long lastPosition;
 
-    private int textHeight = 0;
 
 
-    private void prepareText()
+    /**
+     * At least first paragraph with valid first line is needed.
+     * A new text is created from the first line
+     */
+    private void buildTextFromFirstLine()
         {
         TextParagraph paragraph;
 
-        while ( textHeight < viewHeight - 2 * viewMargin )
+        int paragraphCounter = 0;
+        int lineCounter = firstLine - 1;
+
+        int yPosition = viewMargin - fontAscent;
+
+        while (yPosition < viewHeight - viewMargin - fontDescent)
             {
-            paragraph = new TextParagraph();
-            lastPosition = paragraph.readParagraph( jigReader, lastPosition );
-
-            paragraph.measureWords( fontPaint );
-            paragraph.renderLines(viewWidth);
-            visibleParagraphs.add( paragraph );
-
-            // Find the first line
-            if ( firstLine == -1 )
+            lineCounter++;
+            if (lineCounter >= visibleParagraphs.get(paragraphCounter).sizeOfLines())
                 {
-                for ( int l = paragraph.sizeOfLines() - 1; l >0 ; l-- )
+                lineCounter = 0;
+                paragraphCounter++;
+                if (paragraphCounter >= visibleParagraphs.size())
                     {
-                    if ( firstLinePointer > paragraph.getLine( l ).getFilePointer() )
-                        break;
+                    paragraph = new TextParagraph();
+                    lastPosition = paragraph.readParagraph(jigReader, lastPosition);
+
+                    paragraph.measureWords(fontPaint);
+                    paragraph.renderLines(viewWidth);
+                    visibleParagraphs.add(paragraph);
+
+                    // ?? WHAT happens if no more paragraph is available ??
                     }
-
-                firstLine = l;
                 }
 
+            visibleParagraphs.get(paragraphCounter).getLine(lineCounter).setYPosition(yPosition);
 
-
-            for ( int l = 0; l < paragraph.sizeOfLines(); l++ )
-                {
-                textHeight += paragraph.getLine( l ).getHeight();
-
-                if ( textHeight > viewHeight - 2 * viewMargin )
-                    {
-                    lastLine = l;
-                    break;
-                    }
-
-                }
-
-
-
-
+            yPosition += lineHeight(visibleParagraphs.get(paragraphCounter).getLine(lineCounter).getType());
             }
 
+        lastLine = lineCounter;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        // both postion and view data are needed
-        if ( linesInView < 0 || firstParagraph < 0 )
-            return;
-
-        while ( heightOfText < viewHeight)
+        paragraphCounter++;
+        while (paragraphCounter < visibleParagraphs.size())
             {
-
-                
-            }
-        
-        
-        
-
-        while ( loadedLines < linesInView + firstLineInView )
-            {
-            paragraph = new TextParagraph();
-            try
-                {
-                lastPosition = paragraph.readParagraph( jigReader, lastPosition );
-
-                paragraph.measureWords( fontPaint );
-                loadedLines += paragraph.renderLines(viewWidth);
-                visibleParagraphs.add( paragraph );
-
-                if ( jigReader.isEof() )
-                    break;
-                }
-            catch (IOException e)
-                {
-                return; // No more paragraphs are available
-                }
-
-            }
-
-        // Ez nem kell a ciklusba, mer csak egyszer kellhet meghivni
-        // inkabb megegyszer meghivjuk onmagat, mert lehet,h. nincs eleg sor
-        // jobb lenne inkabb ket setFilePosition - egy ha nincs meret, egy, ha van
-        if (firstWordInView >= 0)
-            {
-            // Ez a rész állítja be a megfelelő szót
-            // Mi a helyzet az üres sorokkal??
-            // Ez a megoldás véd a túl nagy számoktól, mert olyankor beadja az utolsó sort.
-            // Üres sorok esetén sincs gond: ott ugyan a 0. szó is "túl nagy", ezért az utolsó (0.) sort kapjuk meg
-            firstLineInView = visibleParagraphs.get(0).lines.size()-1;
-            while ( firstWordInView  < visibleParagraphs.get(0).lines.get(firstLineInView).firstWord )
-                {
-                firstLineInView--;
-                }
-
-            firstWordInView = -1;
-            prepareParagraphs();
+            visibleParagraphs.remove(visibleParagraphs.size() - 1);
             }
         }
 

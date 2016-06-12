@@ -28,6 +28,8 @@ public class TextLine
     public static final int LINE_LAST = 1;
     public static final int LINE_NORMAL = 2;
 
+    // Only between firstLine (of first para) to lastLine (of last para)
+    private int positionX;
 
     /**
      * Constructor
@@ -47,6 +49,18 @@ public class TextLine
         if ( words.isEmpty() )
             return -1L; // ??
         return words.get(firstWord).getFilePointer();
+        }
+
+
+    public int getPositionX()
+        {
+        return positionX;
+        }
+
+
+    public void setPositionX(int positionX)
+        {
+        this.positionX = positionX;
         }
 
 
