@@ -7,7 +7,9 @@ import android.widget.EditText;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import digitalgarden.justifiedtext.debug.Debug;
 import digitalgarden.justifiedtext.description.TextDescriptor;
+import digitalgarden.justifiedtext.scribe.Scribe;
 
 public class JustifiedTextActivity extends Activity 
     {
@@ -22,6 +24,9 @@ public class JustifiedTextActivity extends Activity
     public void onCreate(Bundle savedInstanceState)
         {
         super.onCreate(savedInstanceState);
+
+        Debug.initScribe( this );
+
         setContentView(R.layout.activity_justified_text);
 
         editText = (EditText) findViewById(R.id.editText);
@@ -32,6 +37,8 @@ public class JustifiedTextActivity extends Activity
     public void onResume()
         {
         super.onResume();
+        Scribe.locus();
+
         try
             {
             textDescriptor = new TextDescriptor( "//proba.txt");
@@ -39,7 +46,7 @@ public class JustifiedTextActivity extends Activity
             }
         catch (FileNotFoundException e)
             {
-            e.printStackTrace();
+            Scribe.error("COULD NOT FIND TEXT-DESCRIPTOR FILE!");
             }
         }
 
@@ -47,6 +54,7 @@ public class JustifiedTextActivity extends Activity
     public void onPause()
         {
         super.onPause();
+        Scribe.locus();
 
         if ( textDescriptor != null )
             try

@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import digitalgarden.justifiedtext.jigreader.JigReader;
+import digitalgarden.justifiedtext.scribe.Scribe;
 
 /**
  * Visible parts of the text
@@ -64,11 +65,19 @@ public class TextDescriptor
         }
 
 
+    private boolean isViewAndFileDataReady()
+        {
+        return firstLine >= 0 && viewHeight >= 0;
+        }
+
+
     public TextDescriptor(String fileName ) throws FileNotFoundException
         {
         File file = new File( Environment.getExternalStorageDirectory(), fileName );
         this.jigReader =
             new JigReader( file );
+
+        Scribe.debug("TextDescriptor file: [" + file.getAbsolutePath() + "] was opened.");
 
         setFontSize( 20f );
         setFontColor( Color.BLACK );
@@ -119,7 +128,7 @@ public class TextDescriptor
         this.viewHeight = viewHeight;
         this.viewMargin = viewMargin;
 
-        // automatically show text, if textPosiion is given
+        buildTextFromFirstLine();
         }
 
 
@@ -184,6 +193,9 @@ public class TextDescriptor
      */
     private void buildTextFromFirstLine()
         {
+        if ( !isViewAndFileDataReady() )
+            return;
+
         ParaDescriptor paragraph;
 
         int paraCounter = 0;
