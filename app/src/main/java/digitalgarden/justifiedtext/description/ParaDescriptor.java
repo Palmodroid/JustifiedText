@@ -6,20 +6,20 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import digitalgarden.justifiedtext.JigReader;
+import digitalgarden.justifiedtext.jigreader.JigReader;
 import digitalgarden.justifiedtext.scribe.Scribe;
 
 /**
- * TextParagraph text between '\r' 0x0A-s.
+ * ParaDescriptor text between '\r' 0x0A-s.
  * Actually this means text between (including) current position and the next 0x0A
  * Reads all words from this paragraphs, measures them and then renders lines from the words.
  * After this point these "virtual" lines are used. Paragraph only provides its lines.
  */
-public class TextParagraph
+public class ParaDescriptor
     {
     // Can be empty, but cannot be null!
-    public List<TextWord> words;
-    public List<TextLine> lines;
+    public List<WordDescriptor> words;
+    public List<LineDescriptor> lines;
 
     private float spaceMin;
     private float spaceMax;
@@ -28,12 +28,23 @@ public class TextParagraph
     /**
      * Reads all words from the paragraph into a new word-list
      * @param jigReader jigReader to get text
+     * @return next file position, or -1L if EOF is reached
      */
-    public long readParagraph( JigReader jigReader, long fromPosition ) throws IOException
+    public long readPara(JigReader jigReader, long fromPosition )
         {
         // words should be deleted, or this routine should come into the constructor
         words = new ArrayList<>();
-        jigReader.seek( fromPosition );
+
+        try
+            {
+            jigReader.seek(fromPosition);
+            }
+        catch ( IOException ioe )
+            {
+            // Exception is thrown only if paragraph cannot be read because of i/o error
+            // Empty paragraph is returned with EOF signal
+            return -1L;
+            }
 
         int chr;
         long wordPointer;
@@ -49,7 +60,16 @@ para:	while ( true )
                 }
 
             // words - this could be inside wordText constructor
-            wordPointer = jigReader.getFilePointer() - 1; // chr was read already
+            try
+                {
+                wordPointer = jigReader.getFilePointer() - 1; // chr was read already
+                }
+            catch (IOException ioe )
+                {
+                // Exception is thrown only if paragraph cannot be read because of i/o error
+                // Paragraph is finished here
+                return -1L;
+                }
             builder.setLength(0);
             do
                 {
@@ -58,11 +78,25 @@ para:	while ( true )
                 } while ( chr > ' ' );
             jigReader.unRead( chr );
 
-            words.add( new TextWord( wordPointer, builder.toString() ) );
+            words.add( new WordDescriptor( wordPointer, builder.toString() ) );
             }
         Scribe.debug("Para: " + words);
 
-        return jigReader.getFilePointer();
+        if ( chr == -1 ) // EOF is reached
+            {
+            return -1L;
+            }
+
+        try
+            {
+            return jigReader.getFilePointer();
+            }
+        catch (IOException ioe )
+            {
+            // Exception is thrown only if paragraph cannot be read because of i/o error
+            // Paragraph is finished here
+            return -1L;
+            }
         }
 
 
@@ -75,7 +109,7 @@ para:	while ( true )
         spaceMin = paintFont.measureText(".");
         spaceMax = paintFont.measureText("ww");
 
-        for ( TextWord word : words )
+        for ( WordDescriptor word : words )
             {
             word.measure( paintFont );
             }
@@ -83,7 +117,8 @@ para:	while ( true )
 
 
     /**
-     * Render lines for the specified width
+     * Render lines for the specified width.
+     * At least one line is generated (for empty paragraphs)
      * @param width width of the view
      */
     public int renderLines( int width )
@@ -91,12 +126,11 @@ para:	while ( true )
         lines = new ArrayList<>();
 
         int wordCount = 0;
-        while ( wordCount < words.size() )
-            {
-            TextLine line = new TextLine( words );
+        do  {
+            LineDescriptor line = new LineDescriptor( words );
             wordCount = line.render( wordCount, spaceMin, spaceMax, width );
             lines.add( line );
-            }
+            } while ( wordCount < words.size() );
 
         return lines.size();
         }
@@ -107,7 +141,7 @@ para:	while ( true )
         return lines.size();
         }
 
-    public TextLine getLine( int line )
+    public LineDescriptor getLine(int line )
         {
         return lines.get(line);
         }

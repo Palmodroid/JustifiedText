@@ -3,10 +3,12 @@ package digitalgarden.justifiedtext.description;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 
+import digitalgarden.justifiedtext.scribe.Scribe;
+
 /**
  * Descriptor of a word
  */
-public class TextWord
+public class WordDescriptor
     {
     // text of the word - between to (white)spaces
     private String text;
@@ -22,13 +24,15 @@ public class TextWord
 
 
     /**
-     * Constructor - called by TextParagraph
+     * Constructor - called by ParaDescriptor
      * @param text text of the word
      */
-    TextWord( long filePointer, String text )
+    WordDescriptor(long filePointer, String text )
         {
         this.filePointer = filePointer;
         this.text = text;
+
+        Scribe.debug("Word added: [" + text + "] - (" + filePointer + ")");
         }
 
 
@@ -42,7 +46,7 @@ public class TextWord
 
 
     /**
-     * Measures word width - called by TextParagraph
+     * Measures word width - called by ParaDescriptor
      * http://stackoverflow.com/a/7579469 - difference between measureText() and getTextBounds()
      * @param paint paint used for measuring
      */
@@ -52,7 +56,7 @@ public class TextWord
         }
 
     /**
-     * Returns previously measured (measure()) width - used by TextLine
+     * Returns previously measured (measure()) width - used by LineDescriptor
      */
     public float getWidth()
         {
@@ -61,7 +65,7 @@ public class TextWord
 
 
     /**
-     * Sets x position inside line - called by TextLine
+     * Sets x position inside line - called by LineDescriptor
      * @param positionX
      */
     public void setPosition( float positionX )
@@ -71,7 +75,7 @@ public class TextWord
 
 
     /**
-     * Draws this word - called by TextLine
+     * Draws this word - called by LineDescriptor
      * @param canvas canvas to draw on
      * @param positionY y position (in pixels)
      * @param paint paint to use for drawing

@@ -2,46 +2,33 @@ package digitalgarden.justifiedtext;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
 
-import digitalgarden.justifiedtext.description.VisibleText;
+import java.io.IOException;
+
+import digitalgarden.justifiedtext.description.TextDescriptor;
 
 /**
  * Just a probe
  */
 public class JustifiedTextView extends View
     {
-    private VisibleText visibleText = null;
-
-    /** Paint of the font */
-    private Paint fontPaint;
-
+    private TextDescriptor textDescriptor = null;
 
     public JustifiedTextView(Context context)
         {
         super(context);
-        init();
         }
 
     public JustifiedTextView(Context context, AttributeSet attrs)
         {
         super(context, attrs);
-        init();
         }
 
     public JustifiedTextView(Context context, AttributeSet attrs, int defStyleAttr)
         {
         super(context, attrs, defStyleAttr);
-        init();
-        }
-
-    private void init()
-        {
-        fontPaint = new Paint();
-        fontPaint.setColor(0xffffd4ab);
-        setFontSize(26f);
         }
 
     @Override
@@ -74,35 +61,36 @@ public class JustifiedTextView extends View
     @Override
     protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight)
         {
-        if ( visibleText != null )
+        if ( textDescriptor != null )
             {
-            visibleText.setParameters( fontPaint, width, height );
+            textDescriptor.setViewParameters( width, height, 0 );
             }
         }
 
 
-    public void setVisibleText( VisibleText visibleText, int firstParagraph, int firstWord )
+    public void setVisibleText(TextDescriptor textDescriptor, long startPointer )
         {
-        this.visibleText = visibleText;
-        this.visibleText.setFilePosition( firstParagraph, firstWord );
-
-        if ( getHeight() > 0 ) //
+        try
             {
-            this.visibleText.setParameters( fontPaint, getWidth(), getHeight() );
+            this.textDescriptor = textDescriptor;
+            this.textDescriptor.setFilePosition( startPointer );
+            if ( getHeight() > 0 )
+                {
+                this.textDescriptor.setViewParameters( getWidth(), getHeight(), 0 );
+                }
             }
-        }
-
-    public void setFontSize( float size)
-        {
-        fontPaint.setTextSize( size );
+        catch (IOException e)
+            {
+            this.textDescriptor = null;
+            }
         }
 
     @Override
     protected void onDraw(Canvas canvas)
         {
-        if ( visibleText != null )
+        if ( textDescriptor != null )
             {
-            visibleText.drawText( canvas );
+            textDescriptor.drawText( canvas );
             }
         }
     }

@@ -8,10 +8,10 @@ import java.util.List;
 /**
  * Descriptor of a line
  */
-public class TextLine
+public class LineDescriptor
     {
     // pointer to the words of the paragraph
-    private List<TextWord> words;
+    private List<WordDescriptor> words;
 
     // firstWord == negative values: rendering was not started
     // lastWord < firstWord: no words in this line
@@ -21,21 +21,14 @@ public class TextLine
     // last word of the line (among the words of the paragraph)
     private int lastWord;
 
-    // Height of the line
-    private int lineType;
-
-    public static final int LINE_EMPTY = 0;
-    public static final int LINE_LAST = 1;
-    public static final int LINE_NORMAL = 2;
-
     // Only between firstLine (of first para) to lastLine (of last para)
-    private int positionX;
+    private int positionY;
 
     /**
      * Constructor
      * @param words list of all words of the paragraph
      */
-    TextLine( List<TextWord> words )
+    LineDescriptor(List<WordDescriptor> words )
         {
         this.words = words;
         }
@@ -52,15 +45,15 @@ public class TextLine
         }
 
 
-    public int getPositionX()
+    public int getPositionY()
         {
-        return positionX;
+        return positionY;
         }
 
 
-    public void setPositionX(int positionX)
+    public void setPositionY(int positionY)
         {
-        this.positionX = positionX;
+        this.positionY = positionY;
         }
 
 
@@ -119,15 +112,13 @@ public class TextLine
         // This line is empty
         if ( wordsInLine == 0 )
             {
-            lineType = LINE_EMPTY;
-            return wordCursor; // It should be 0
+            return 0; // wordCursor should be 0
             }
 
         // Last line - do not justify
         if ( wordCursor >= words.size() )
             {
             spaceWidth = spaceMin;
-            lineType = LINE_LAST;
             }
         // Justify words
         else
@@ -135,7 +126,6 @@ public class TextLine
             spaceWidth = (width - textWidth - 0.1f) / wordsInLine;
             if (spaceWidth > spaceMax)
                 spaceWidth = spaceMin;
-            lineType = LINE_NORMAL;
             }
 
         // Set x position for each word inside line
@@ -154,17 +144,30 @@ public class TextLine
     /**
      * Draws the words of this line onto the canvas
      * @param canvas canvas to draw on
-     * @param positionY y position (in pixels)
      * @param paint paint to use for drawing
      * @return line type
      */
-    public int draw(Canvas canvas, float positionY, Paint paint)
+    public void draw(Canvas canvas, Paint paint)
         {
         for ( int word = firstWord; word <= lastWord; word++ )
             {
             words.get(word).draw(canvas, positionY, paint);
             }
-
-        return lineType;
         }
+
+    public boolean isFirst()
+        {
+        return firstWord == 0;
+        }
+
+    public boolean isLast()
+        {
+        return lastWord == words.size()-1;
+        }
+
+    public boolean isEmpty()
+        {
+        return lastWord < firstWord;
+        }
+
     }

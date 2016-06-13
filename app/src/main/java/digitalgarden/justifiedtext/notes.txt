@@ -2,7 +2,7 @@ Justified Text
 
 A program egy txt file tetszőleges pozíciójáról olvas be szöveget, melyet sorkizártan jelenít meg.
 
-A szöveg alapja a bekezdés (paragraph). A bekezdéseket 0x0A kód (vagy EOF) zárja le.
+A szöveg alapja a bekezdés (para). A bekezdéseket 0x0A kód (vagy EOF) zárja le.
 Minden bekezdés szavakból áll össze, melyeket szóközök választanak el. A program értelmezése szerint
 a szóköz minden 0x20, és az alatta lévő karakterek (kivéve a 0x0A és EOF kódot).
 Ez a szöveg valós felépítését jelenti.
@@ -30,3 +30,17 @@ Normál sorok esetében ehhez hozzáadódik egy fontLeading érték,
 Utolsó sorok esetében a fontLeading érték nagyobb.
 Üres sorok esetében a teljes köz kisebb. Arra figyelni kell, hogy ezek a sorok is fontAscent
 magasságban kezdődnek.
+
+ParaDescriptor - a bekezdés adatai (szavak és sorok); ill. a bekezdés feldolgozásáért felelős részek:
+    - readPara()     - beolvassa a bekezdés szavait
+                       a következő bekezdés pozíciójával (EOF-nál -1L) tér vissza
+    - measureWords() - leméri minden egyes szó szélességét a fontPaint segítségével
+    - renderLines()  - létrehozza a sorokat az előző adatokból.
+                       Egy sor mindenképpen, még üres bekezdésénél is lesz!
+
+WordDescriptor - tartalmazz az egyes szavakkal kapcsolatos adatokat:
+    - filePointer - a szó pozíciója a file-on belül
+    - text - a szó megjelenítendő szövege
+    - width - a szó szélessége pixelben (lehet tört)
+    - positionX - a szó helyzete pixelben a soron belül
+

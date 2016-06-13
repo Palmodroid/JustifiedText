@@ -7,7 +7,7 @@ import android.widget.EditText;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import digitalgarden.justifiedtext.description.VisibleText;
+import digitalgarden.justifiedtext.description.TextDescriptor;
 
 public class JustifiedTextActivity extends Activity 
     {
@@ -15,7 +15,7 @@ public class JustifiedTextActivity extends Activity
     private EditText editText;
     private JustifiedTextView justifiedTextView;
 
-    private VisibleText visibleText = null;
+    private TextDescriptor textDescriptor = null;
 
 
     @Override
@@ -34,8 +34,8 @@ public class JustifiedTextActivity extends Activity
         super.onResume();
         try
             {
-            visibleText = new VisibleText( "//proba.txt");
-            justifiedTextView.setVisibleText( visibleText, 0, 0 );
+            textDescriptor = new TextDescriptor( "//proba.txt");
+            justifiedTextView.setVisibleText(textDescriptor, 0L );
             }
         catch (FileNotFoundException e)
             {
@@ -48,10 +48,10 @@ public class JustifiedTextActivity extends Activity
         {
         super.onPause();
 
-        if ( visibleText != null )
+        if ( textDescriptor != null )
             try
                 {
-                visibleText.close();
+                textDescriptor.close();
                 }
             catch (IOException e)
                 {

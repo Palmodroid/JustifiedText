@@ -1,4 +1,4 @@
-package digitalgarden.justifiedtext;
+package digitalgarden.justifiedtext.jigreader;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -430,7 +430,7 @@ public class JigReader extends Reader
             {
             // Ez csak biztonsági ellenőrzés, nagyméretű, 0x0a szekvenciát nem tartalmazó file-ok miatt
             if ( buf.length() >= MAX_LINE_LENGTH )
-                throw new IOException( "ERROR! readLine(): TextLine exceeds MAX_LINE_LENGTH!" );
+                throw new IOException( "ERROR! readLine(): LineDescriptor exceeds MAX_LINE_LENGTH!" );
 
             buf.append( (char)c );
             }
