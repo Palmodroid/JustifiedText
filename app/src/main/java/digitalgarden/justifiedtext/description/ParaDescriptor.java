@@ -80,7 +80,7 @@ para:	while ( true )
 
             words.add( new WordDescriptor( wordPointer, builder.toString() ) );
             }
-        Scribe.debug("Para: " + words);
+        // Scribe.debug("Para: " + words);
 
         if ( chr == -1 ) // EOF is reached
             {
@@ -106,8 +106,8 @@ para:	while ( true )
      */
     public void measureWords( Paint paintFont )
         {
-        spaceMin = paintFont.measureText(".");
-        spaceMax = paintFont.measureText("ww");
+        spaceMin = paintFont.measureText("www");
+        spaceMax = paintFont.measureText("wwwww");
 
         for ( WordDescriptor word : words )
             {
@@ -144,5 +144,14 @@ para:	while ( true )
     public LineDescriptor getLine(int line )
         {
         return lines.get(line);
+        }
+
+    public void debug()
+        {
+        Scribe.debug("No. of lines: " + sizeOfLines());
+        for ( LineDescriptor line : lines )
+            {
+            Scribe.debug(" - " + line.dump());
+            }
         }
     }

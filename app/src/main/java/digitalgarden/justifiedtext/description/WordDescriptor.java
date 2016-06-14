@@ -2,8 +2,7 @@ package digitalgarden.justifiedtext.description;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
-
-import digitalgarden.justifiedtext.scribe.Scribe;
+import android.graphics.Rect;
 
 /**
  * Descriptor of a word
@@ -31,8 +30,6 @@ public class WordDescriptor
         {
         this.filePointer = filePointer;
         this.text = text;
-
-        Scribe.debug("Word added: [" + text + "] - (" + filePointer + ")");
         }
 
 
@@ -52,7 +49,11 @@ public class WordDescriptor
      */
     public void measure( Paint paint )
         {
-        this.width = paint.measureText( text );
+        // this.width = paint.measureText( text );
+        Rect bounds = new Rect();
+        paint.getTextBounds( text, 0, text.length()-1, bounds);
+
+        this.width = bounds.width();
         }
 
     /**
@@ -83,6 +84,12 @@ public class WordDescriptor
     public void draw(Canvas canvas, float positionY, Paint paint)
         {
         canvas.drawText( text, positionX, positionY, paint);
+        }
+
+
+    public String dump()
+        {
+        return " (" + filePointer + ") [" + text + "]";
         }
     }
 

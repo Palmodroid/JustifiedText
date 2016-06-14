@@ -19,7 +19,7 @@ import digitalgarden.justifiedtext.scribe.Scribe;
 /**
  * Visible parts of the text
  * This can be started:
- * - before View is calculated (setFilePosition() can be called before)
+ * - before View is calculated (setFilePointer() can be called before)
  * - after View is calculated (setParameters() will be called after)
  */
 public class TextDescriptor
@@ -54,6 +54,7 @@ public class TextDescriptor
     // pointer right after the last paragraph
     private long lastFilePointer;
 
+    private long firstLinePointer = -1;
 
 
 
@@ -67,7 +68,7 @@ public class TextDescriptor
 
     private boolean isViewAndFileDataReady()
         {
-        return firstLine >= 0 && viewHeight >= 0;
+        return firstLinePointer >= 0 && viewHeight >= 0;
         }
 
 
@@ -79,9 +80,10 @@ public class TextDescriptor
 
         Scribe.debug("TextDescriptor file: [" + file.getAbsolutePath() + "] was opened.");
 
-        setFontSize( 20f );
+        setFontSize( 26f );
         setFontColor( Color.BLACK );
         }
+
 
     public void close() throws IOException
         {
@@ -93,20 +95,28 @@ public class TextDescriptor
         finally
             {
             jigReader = null;
+            Scribe.debug("Text descriptor is closed");
             }
         }
 
+
     public void setFontTypeface(Typeface typeface)
         {
+        Scribe.debug("Font typeface is set: " + typeface );
+
         fontPaint.setTypeface( typeface );
         setFontDimensionData();
         }
 
+
     public void setFontSize( float textSize )
         {
+        Scribe.debug("Font size is set: " + textSize );
+
         fontPaint.setTextSize( textSize );
         setFontDimensionData();
         }
+
 
     private void setFontDimensionData()
         {
@@ -115,18 +125,98 @@ public class TextDescriptor
         lineSpace = 5;
         lastLineSpace = 10;
         emptyLineSpace = 20;
+
+        Scribe.debug("Font dimensions - ascent: " + fontAscent +
+                ", descent: " + fontDescent +
+                "; line space: " + lineSpace +
+                ", last line space: " + lastLineSpace +
+                ", empty line space: " + emptyLineSpace);
         }
+
 
     public void setFontColor( int color )
         {
+        Scribe.debug("Font color is set: " + Integer.toHexString(color) );
+
         fontPaint.setColor( color );
         }
+
 
     public void setViewParameters( int viewWidth, int viewHeight, int viewMargin )
         {
         this.viewWidth = viewWidth;
         this.viewHeight = viewHeight;
         this.viewMargin = viewMargin;
+
+        Scribe.debug("View parameters - width: " + viewWidth +
+                ", height: " + viewHeight +
+                ", margin: " + viewMargin);
+
+        findFirstLine();
+        }
+
+
+    public void setFilePointer(long filePointer )
+        {
+        firstLinePointer = filePointer;
+
+        findFirstLine();
+        }
+
+
+    public void findFirstLine()
+        {
+        if ( !isViewAndFileDataReady() )
+            {
+            Scribe.error("DATA OF VIEW OR FILE IS STILL MISSING!");
+            return;
+            }
+
+        if ( firstLine < 0 )
+            {
+            try
+                {
+                checkNotClosed();
+
+                Scribe.debug("File pointer to set: " + firstLinePointer);
+
+                // Find beginning of paragraph
+                jigReader.seek(firstLinePointer);
+                int c;
+                while ((c = jigReader.readByteBackward()) != -1)
+                    {
+                    if (c == 0x0A)
+                        {
+                        lastFilePointer = jigReader.getFilePointer() + 1;
+                        break;
+                        }
+                    }
+                }
+            catch ( IOException ioe )
+                {
+                Scribe.error("TEXT CANNOT BE READ BECAUSE OF I/O ERROR!");
+                return;
+                }
+
+            Scribe.debug("File pointer of the selected paragraph: " + lastFilePointer);
+
+            // Read first paragraph
+            visibleParas.clear();
+            readNextParagraph();
+
+            // Find the first line
+            int l = visibleParas.get(0).sizeOfLines() - 1; // at least 0
+            while (l > 0)
+                {
+                if (firstLinePointer > visibleParas.get(0).getLine(l).getFilePointer())
+                    break;
+                l--;
+                }
+
+            firstLine = l;
+
+            Scribe.debug("Selected (first visible) line of the selected paragraph: " + firstLine);
+            }
 
         buildTextFromFirstLine();
         }
@@ -147,43 +237,10 @@ public class TextDescriptor
         paragraph.renderLines(viewWidth);
         visibleParas.add( paragraph );
 
+        Scribe.debug("Para added at: " + (visibleParas.size()-1) );
+        paragraph.debug();
+
         return lastFilePointer;
-        }
-
-
-    public void setFilePosition( long filePointer ) throws IOException
-        {
-        checkNotClosed();
-
-        long firstLinePointer = filePointer;
-
-        // Find beginning of paragraph
-        jigReader.seek( filePointer );
-        int c;
-        while( (c = jigReader.readByteBackward()) != -1)
-            {
-            if ( c == 0x0A )
-                {
-                lastFilePointer = jigReader.getFilePointer() + 1;
-                break;
-                }
-            }
-
-        // Read first paragraph
-        visibleParas.clear();
-        readNextParagraph( );
-
-        // Find the first line
-        int l = visibleParas.get(0).sizeOfLines() - 1; // at least 0
-        while ( l > 0 )
-            {
-            if ( firstLinePointer > visibleParas.get(0).getLine( l ).getFilePointer() )
-                break;
-            }
-
-        firstLine = l;
-
-        buildTextFromFirstLine();
         }
 
 
@@ -193,11 +250,6 @@ public class TextDescriptor
      */
     private void buildTextFromFirstLine()
         {
-        if ( !isViewAndFileDataReady() )
-            return;
-
-        ParaDescriptor paragraph;
-
         int paraCounter = 0;
         int lineCounter = firstLine - 1;
 
@@ -212,14 +264,11 @@ public class TextDescriptor
                 paraCounter++;
                 if (paraCounter >= visibleParas.size())
                     {
-                    paragraph = new ParaDescriptor();
-                    lastFilePointer = paragraph.readPara(jigReader, lastFilePointer);
-
-                    paragraph.measureWords(fontPaint);
-                    paragraph.renderLines(viewWidth);
-                    visibleParas.add(paragraph);
-
-                    // ?? WHAT happens if no more paragraph is available ??
+                    if ( readNextParagraph() < 0L )
+                        {
+                        Scribe.error("END OF TEXT IS REACHED!");
+                        break;
+                        }
                     }
                 }
 
@@ -255,22 +304,29 @@ public class TextDescriptor
 
     public void drawText( Canvas canvas )
         {
+        Scribe.locus();
+
         int paraCounter = 0;
         int lineCounter = firstLine;
 
         while ( paraCounter < visibleParas.size() )
             {
+            Scribe.debug("PC: " + paraCounter + " / " + (visibleParas.size()-1));
+            Scribe.debug("LC: " + lineCounter + " / " + (visibleParas.get(paraCounter).sizeOfLines()-1));
+
             if ( paraCounter == visibleParas.size()-1 && lineCounter > lastLine ) // last paragraph
                 break;
 
+            Scribe.debug( visibleParas.get(paraCounter).getLine(lineCounter).dump() );
             visibleParas.get(paraCounter).getLine(lineCounter).draw( canvas, fontPaint );
 
             lineCounter++;
-            if ( lineCounter > visibleParas.get(paraCounter).sizeOfLines())
+            if ( lineCounter >= visibleParas.get(paraCounter).sizeOfLines())
                 {
                 paraCounter++;
                 lineCounter=0;
                 }
             }
+
         }
     }

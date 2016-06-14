@@ -5,8 +5,6 @@ import android.graphics.Canvas;
 import android.util.AttributeSet;
 import android.view.View;
 
-import java.io.IOException;
-
 import digitalgarden.justifiedtext.description.TextDescriptor;
 
 /**
@@ -70,19 +68,12 @@ public class JustifiedTextView extends View
 
     public void setVisibleText(TextDescriptor textDescriptor, long startPointer )
         {
-        try
+        this.textDescriptor = textDescriptor;
+        if ( getHeight() > 0 )
             {
-            this.textDescriptor = textDescriptor;
-            this.textDescriptor.setFilePosition( startPointer );
-            if ( getHeight() > 0 )
-                {
-                this.textDescriptor.setViewParameters( getWidth(), getHeight(), 0 );
-                }
+            this.textDescriptor.setViewParameters( getWidth(), getHeight(), 0 );
             }
-        catch (IOException e)
-            {
-            this.textDescriptor = null;
-            }
+        this.textDescriptor.setFilePointer( startPointer );
         }
 
     @Override

@@ -37,12 +37,11 @@ public class JustifiedTextActivity extends Activity
     public void onResume()
         {
         super.onResume();
-        Scribe.locus();
 
         try
             {
             textDescriptor = new TextDescriptor( "//proba.txt");
-            justifiedTextView.setVisibleText(textDescriptor, 0L );
+            justifiedTextView.setVisibleText(textDescriptor, 36L );
             }
         catch (FileNotFoundException e)
             {
@@ -54,7 +53,6 @@ public class JustifiedTextActivity extends Activity
     public void onPause()
         {
         super.onPause();
-        Scribe.locus();
 
         if ( textDescriptor != null )
             try

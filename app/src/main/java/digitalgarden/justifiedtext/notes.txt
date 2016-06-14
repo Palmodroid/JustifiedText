@@ -44,3 +44,16 @@ WordDescriptor - tartalmazz az egyes szavakkal kapcsolatos adatokat:
     - width - a szó szélessége pixelben (lehet tört)
     - positionX - a szó helyzete pixelben a soron belül
 
+
+A megjelenítéshez KÉT adatra van szükség: 1. magára a file-ra, 2. a view adataira. Mind a két adat
+szükséges az induláshoz.
+Elgondolás a következő:
+1. a View adatait az onSizeChanged() metódusban kapjuk meg - viewHeight jelzi
+2. a File adatait a setVisibleText() adja meg - firstLinePointer jelzi
+
+Ekkor még semmi nem történik, csak ha minden adat megvan.
+Akkor viszont megpróbál végigfutni.
+
+Átteni az adatgyűjtést eggyel feljebb??
+
+

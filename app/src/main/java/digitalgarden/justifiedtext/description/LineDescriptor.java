@@ -170,4 +170,25 @@ public class LineDescriptor
         return lastWord < firstWord;
         }
 
+
+    public String dump()
+        {
+        StringBuilder builder = new StringBuilder();
+        builder.append( isFirst() ? 'F' : ' ' );
+        builder.append( isLast() ? 'L' : ' ' );
+
+        if ( isEmpty() )
+            {
+            builder.append("<EMPTY LINE>");
+            }
+        else
+            {
+            for (int w = firstWord; w <= lastWord; w++)
+                {
+                builder.append(words.get(w).dump());
+                }
+            }
+        return builder.toString();
+        }
+
     }

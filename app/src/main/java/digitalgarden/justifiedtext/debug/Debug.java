@@ -27,7 +27,7 @@ public class Debug
         Scribe.checkLogFileLength(); // Primary log will log several runs
         Scribe.logUncaughtExceptions(); // Primary log will store uncaught exceptions
 
-        Scribe.title("Justified text has started...");
+        Scribe.title("Justified text has started");
         }
 
     }
