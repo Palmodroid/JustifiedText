@@ -5,6 +5,8 @@ import android.graphics.Paint;
 
 import java.util.List;
 
+import digitalgarden.justifiedtext.scribe.Scribe;
+
 /**
  * Descriptor of a line
  */
@@ -65,34 +67,33 @@ public class LineDescriptor
      * @param width width available for the line
      * @return the No. of the first non-added word
      */
-    public int render( int startWord, float spaceMin, float spaceMax, int width )
+    public int render( int startWord, float spaceMin, float spaceMax, int width, int margin )
         {
+        Scribe.locus();
+
         // iterator from startWord to the last word of the paragraph
         int wordCursor;
-        // counter of words added inside the line
-        int wordsInLine = 0;
 
         // width occupied by added words and minimal space between them
         float textWidth = 0f;
 
         // width of the remaining space inside the line
-        float spaceWidth;
+        float spaceWidth = 0f;
         // width of the current word
         float wordWidth;
 
         this.firstWord = startWord;
-        this.lastWord = startWord - 1;
+        this.lastWord = firstWord - 1;
 
         // iterate through words
-        for ( wordCursor = startWord; wordCursor < words.size(); wordCursor++ )
+        for ( wordCursor = firstWord; wordCursor < words.size(); wordCursor++ )
             {
             wordWidth = words.get(wordCursor).getWidth();
 
             // word can be added
-            if ( textWidth + wordsInLine * spaceMin + wordWidth <= width )
+            if ( textWidth + (lastWord - firstWord + 1) * spaceMin + wordWidth <= width - 2 * margin )
                 {
                 lastWord++;
-                wordsInLine++;
                 textWidth += wordWidth;
                 }
             // word is too long (cannot be added), but this is the first word in the line
@@ -100,7 +101,8 @@ public class LineDescriptor
                 {
                 // long words will overflow width
                 // this can be solved only if unit is smaller than a word
-                return wordCursor + 1;
+                lastWord++;
+                break;
                 }
             // word cannot be added, because there is no more space
             else
@@ -109,35 +111,30 @@ public class LineDescriptor
                 }
             }
 
-        // This line is empty
-        if ( wordsInLine == 0 )
-            {
-            return 0; // wordCursor should be 0
-            }
+        Scribe.debug("Words count: " + (lastWord - firstWord + 1) + ", text width: " + textWidth + ", words: " + dump());
 
-        // Last line - do not justify
-        if ( wordCursor >= words.size() )
+        // Justify: at least two words, and not the last line
+        if ( lastWord > firstWord && lastWord != words.size() - 1)
+            {
+            spaceWidth = (width - 2 * margin - textWidth) / (lastWord - firstWord);
+            Scribe.debug("Space width: " + spaceWidth);
+            }
+        if ( spaceWidth < spaceMin || spaceWidth > spaceMax )
             {
             spaceWidth = spaceMin;
-            }
-        // Justify words
-        else
-            {
-            spaceWidth = (width - textWidth - 0.1f) / wordsInLine;
-            if (spaceWidth > spaceMax)
-                spaceWidth = spaceMin;
+            Scribe.debug("Space width: MINIMAL");
             }
 
         // Set x position for each word inside line
-        float positionX = 0;
-        for (int word = startWord; word <= lastWord; word++)
+        float positionX = margin;
+        for (int word = firstWord; word <= lastWord; word++)
             {
             words.get(word).setPosition(positionX);
             positionX += words.get(word).getWidth() + spaceWidth;
             }
 
         // return the first non-added word of the paragraph
-        return wordCursor;
+        return lastWord + 1;
         }
 
 

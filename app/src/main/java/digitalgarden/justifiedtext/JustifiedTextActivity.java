@@ -41,7 +41,7 @@ public class JustifiedTextActivity extends Activity
         try
             {
             textDescriptor = new TextDescriptor( "//proba.txt");
-            justifiedTextView.setVisibleText(textDescriptor, 36L );
+            justifiedTextView.setVisibleText(textDescriptor, 0L );
             }
         catch (FileNotFoundException e)
             {

@@ -219,6 +219,13 @@ public class TextDescriptor
             }
 
         buildTextFromFirstLine();
+        pageDown();
+        pageDown();
+        pageDown();
+        pageDown();
+        pageDown();
+        pageDown();
+
         }
 
 
@@ -234,7 +241,7 @@ public class TextDescriptor
         ParaDescriptor paragraph = new ParaDescriptor();
         lastFilePointer = paragraph.readPara( jigReader, lastFilePointer);
         paragraph.measureWords( fontPaint );
-        paragraph.renderLines(viewWidth);
+        paragraph.renderLines( viewWidth, viewMargin );
         visibleParas.add( paragraph );
 
         Scribe.debug("Para added at: " + (visibleParas.size()-1) );
@@ -283,6 +290,36 @@ public class TextDescriptor
             {
             visibleParas.remove(visibleParas.size() - 1);
             }
+        }
+
+
+    public void pageDown()
+        {
+        int paraCounter = visibleParas.size() - 1;
+        int lineCounter = lastLine;
+
+        for ( int n = 0; n < 2; n++)
+            {
+            if (paraCounter > 0 || lineCounter > firstLine)
+                {
+                lineCounter--;
+                if (lineCounter < 0)
+                    {
+                    paraCounter--;
+                    lineCounter = visibleParas.get(paraCounter).sizeOfLines() - 1;
+                    }
+                }
+            }
+
+        firstLine = lineCounter;
+
+        while ( paraCounter > 0 )
+            {
+            visibleParas.remove(0);
+            paraCounter--;
+            }
+
+        buildTextFromFirstLine();
         }
 
 

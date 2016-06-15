@@ -61,7 +61,7 @@ public class JustifiedTextView extends View
         {
         if ( textDescriptor != null )
             {
-            textDescriptor.setViewParameters( width, height, 0 );
+            textDescriptor.setViewParameters( width, height, 25 );
             }
         }
 
@@ -71,7 +71,7 @@ public class JustifiedTextView extends View
         this.textDescriptor = textDescriptor;
         if ( getHeight() > 0 )
             {
-            this.textDescriptor.setViewParameters( getWidth(), getHeight(), 0 );
+            this.textDescriptor.setViewParameters( getWidth(), getHeight(), 25 );
             }
         this.textDescriptor.setFilePointer( startPointer );
         }

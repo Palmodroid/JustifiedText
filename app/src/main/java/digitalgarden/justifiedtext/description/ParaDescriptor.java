@@ -106,8 +106,10 @@ para:	while ( true )
      */
     public void measureWords( Paint paintFont )
         {
-        spaceMin = paintFont.measureText("www");
-        spaceMax = paintFont.measureText("wwwww");
+        spaceMin = paintFont.measureText(".");
+        spaceMax = paintFont.measureText("mmm");
+
+        Scribe.debug("Space is calculated, min: " + spaceMin + ", max: " + spaceMax);
 
         for ( WordDescriptor word : words )
             {
@@ -121,14 +123,14 @@ para:	while ( true )
      * At least one line is generated (for empty paragraphs)
      * @param width width of the view
      */
-    public int renderLines( int width )
+    public int renderLines( int width, int margin )
         {
         lines = new ArrayList<>();
 
         int wordCount = 0;
         do  {
             LineDescriptor line = new LineDescriptor( words );
-            wordCount = line.render( wordCount, spaceMin, spaceMax, width );
+            wordCount = line.render( wordCount, spaceMin, spaceMax, width, margin );
             lines.add( line );
             } while ( wordCount < words.size() );
 
