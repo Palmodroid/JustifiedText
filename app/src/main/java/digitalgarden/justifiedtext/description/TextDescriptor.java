@@ -45,6 +45,7 @@ public class TextDescriptor
 
 
     // visible paragraphs ONLY!
+    // At least one paragraph is needed after setPosition, otherwise the text is empty.
     private List<ParaDescriptor> visibleParas = new ArrayList<>();
     // first visible line of FIRST paragraph
     private int firstLine = -1;
@@ -52,7 +53,8 @@ public class TextDescriptor
     private int lastLine = -1;
 
     // pointer right after the last paragraph
-    private long lastFilePointer;
+    private long lastFilePointer = -1L;
+
 
     private long firstLinePointer = -1;
 
@@ -63,12 +65,6 @@ public class TextDescriptor
         {
         if (jigReader == null)
             throw new IOException("JigReader already closed!");
-        }
-
-
-    private boolean isViewAndFileDataReady()
-        {
-        return firstLinePointer >= 0 && viewHeight >= 0;
         }
 
 
@@ -159,73 +155,89 @@ public class TextDescriptor
     public void setFilePointer(long filePointer )
         {
         firstLinePointer = filePointer;
+        visibleParas.clear(); // ??
+        lastFilePointer = -1L; // ??
+        firstLine = -1;
+        lastLine = -1; // ??
 
         findFirstLine();
         }
 
 
+    /**
+     * Finds first line, if
+     * - data is available
+     * - first line was not found previously
+     * Calls the builder after finding the right position.
+     */
     public void findFirstLine()
         {
-        if ( !isViewAndFileDataReady() )
+        if ( viewHeight < 0 )
             {
-            Scribe.error("DATA OF VIEW OR FILE IS STILL MISSING!");
+            Scribe.error("CANNOT FIND FIRST LINE - VIEW DATA IS STILL MISSING!");
             return;
             }
 
-        if ( firstLine < 0 )
+        if ( firstLinePointer < 0L )
             {
-            try
-                {
-                checkNotClosed();
-
-                Scribe.debug("File pointer to set: " + firstLinePointer);
-
-                // Find beginning of paragraph
-                jigReader.seek(firstLinePointer);
-                int c;
-                while ((c = jigReader.readByteBackward()) != -1)
-                    {
-                    if (c == 0x0A)
-                        {
-                        lastFilePointer = jigReader.getFilePointer() + 1;
-                        break;
-                        }
-                    }
-                }
-            catch ( IOException ioe )
-                {
-                Scribe.error("TEXT CANNOT BE READ BECAUSE OF I/O ERROR!");
-                return;
-                }
-
-            Scribe.debug("File pointer of the selected paragraph: " + lastFilePointer);
-
-            // Read first paragraph
-            visibleParas.clear();
-            readNextParagraph();
-
-            // Find the first line
-            int l = visibleParas.get(0).sizeOfLines() - 1; // at least 0
-            while (l > 0)
-                {
-                if (firstLinePointer > visibleParas.get(0).getLine(l).getFilePointer())
-                    break;
-                l--;
-                }
-
-            firstLine = l;
-
-            Scribe.debug("Selected (first visible) line of the selected paragraph: " + firstLine);
+            Scribe.error("CANNOT FIND FIRST LINE - FILE POINTER IS STILL MISSING!");
+            return;
             }
 
-        buildTextFromFirstLine();
-        pageDown();
-        pageDown();
-        pageDown();
-        pageDown();
-        pageDown();
-        pageDown();
+        if ( firstLine >= 0 )
+            {
+            Scribe.error("FIRST LINE WAS ALREADY FOUND!");
+            return;
+            }
 
+        try
+            {
+            checkNotClosed();
+
+            Scribe.debug("File pointer to set: " + firstLinePointer);
+
+            // Find beginning of paragraph
+            jigReader.seek(firstLinePointer);
+            int c;
+            while ((c = jigReader.readByteBackward()) != -1)
+                {
+                if (c == 0x0A)
+                    {
+                    jigReader.readByte(); // Skip 0x0A
+                    break;
+                    }
+                }
+            lastFilePointer = jigReader.getFilePointer();
+            }
+        catch ( IOException ioe )
+            {
+            Scribe.error("TEXT CANNOT BE READ BECAUSE OF I/O ERROR!");
+            return;
+            }
+
+        Scribe.debug("File pointer of the selected paragraph: " + lastFilePointer);
+
+        // Read first paragraph
+        visibleParas.clear();
+        readNextParagraph();
+
+        // Find the first line
+        int l = visibleParas.get(0).sizeOfLines() - 1; // at least 0
+        while (l > 0)
+            {
+            if (firstLinePointer > visibleParas.get(0).getLine(l).getFilePointer())
+                break;
+            l--;
+            }
+
+        firstLine = l;
+
+        Scribe.debug("Selected (first visible) line of the selected paragraph: " + firstLine);
+
+        buildTextFromFirstLine();
+
+        pageDown();
+        lineDown();
         }
 
 
@@ -320,6 +332,22 @@ public class TextDescriptor
             }
 
         buildTextFromFirstLine();
+        }
+
+
+    public void lineDown()
+        {
+        if ( visibleParas.size() > 1 || firstLine < lastLine )
+            {
+            firstLine++;
+            if (firstLine >= visibleParas.get(0).sizeOfLines())
+                {
+                visibleParas.remove(0);
+                firstLine = 0;
+                }
+
+            buildTextFromFirstLine();
+            }
         }
 
 

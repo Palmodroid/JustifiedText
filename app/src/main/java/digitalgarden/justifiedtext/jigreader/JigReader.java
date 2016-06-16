@@ -126,7 +126,7 @@ public class JigReader extends Reader
                 {
                 if ( block[activeBlock].offset == 0L )
                     {
-                    pointerInBlock = -1;
+                    pointerInBlock = 0;
                     return -1; // BOF
                     }
 
