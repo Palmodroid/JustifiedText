@@ -24,20 +24,29 @@ public class ParaDescriptor
     private float spaceMin;
     private float spaceMax;
 
+    private long filePointer;
+
+
+    public long getFilePointer()
+        {
+        return filePointer;
+        }
+
 
     /**
      * Reads all words from the paragraph into a new word-list
      * @param jigReader jigReader to get text
      * @return next file position, or -1L if EOF is reached
      */
-    public long readPara(JigReader jigReader, long fromPosition )
+    public long readPara(JigReader jigReader, long fromPointer )
         {
         // words should be deleted, or this routine should come into the constructor
         words = new ArrayList<>();
+        filePointer = fromPointer;
 
         try
             {
-            jigReader.seek(fromPosition);
+            jigReader.seek(fromPointer);
             }
         catch ( IOException ioe )
             {

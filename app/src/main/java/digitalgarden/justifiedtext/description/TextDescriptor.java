@@ -236,8 +236,10 @@ public class TextDescriptor
 
         buildTextFromFirstLine();
 
-        pageDown();
-        lineDown();
+        //pageDown();
+        //lineDown();
+        pageUp();
+        pageUp();
         }
 
 
@@ -348,6 +350,123 @@ public class TextDescriptor
 
             buildTextFromFirstLine();
             }
+        }
+
+
+    private long readPrevParagraph( )
+        {
+        long filePointer = visibleParas.get(0).getFilePointer();
+
+        try
+            {
+            // Find beginning of paragraph
+            jigReader.seek(filePointer);
+            if ( jigReader.readByteBackward() == -1 )   // read 0x0a
+                return -1L;
+
+            int c;
+            while ((c = jigReader.readByteBackward()) != -1)
+                {
+                if (c == 0x0A)
+                    {
+                    jigReader.readByte(); // Skip 0x0A
+                    break;
+                    }
+                }
+
+            filePointer = jigReader.getFilePointer();
+            }
+        catch ( IOException ioe )
+            {
+            return -1L; // Simulate BOF
+            }
+
+        ParaDescriptor paragraph = new ParaDescriptor();
+        paragraph.readPara( jigReader, filePointer);
+        paragraph.measureWords( fontPaint );
+        paragraph.renderLines( viewWidth, viewMargin );
+        visibleParas.add( 0, paragraph );
+
+        Scribe.debug("Para added at: 0");
+        paragraph.debug();
+
+        return filePointer;
+        }
+
+
+    private void buildTextFromLastLine()
+        {
+        int paraCounter = visibleParas.size()-1;
+        int lineCounter = lastLine + 1;
+
+        // exact position cannot be calculated. Paras are read first, then rebuild from first line
+        int positionY = viewMargin - fontAscent;
+
+        while (positionY < viewHeight - viewMargin - fontDescent)
+            {
+            lineCounter--;
+            if ( lineCounter < 0 )
+                {
+                paraCounter --;
+                if ( paraCounter < 0 )
+                    {
+                    paraCounter = 0;
+                    if ( readPrevParagraph() < 0L )
+                        {
+                        Scribe.error("BEGINNING OF TEXT IS REACHED!");
+
+                        lineCounter = 0; // New first line is set
+                        break;
+                        }
+                    }
+
+                lineCounter = visibleParas.get(paraCounter).sizeOfLines()-1;
+                }
+
+            // this is not possible: visibleParas.get(paraCounter).getLine(lineCounter).setPositionY(positionY);
+            positionY += getLineHeight(paraCounter, lineCounter);
+            }
+
+        firstLine = lineCounter;
+
+        while ( paraCounter > 0 )
+            {
+            visibleParas.remove(0);
+            paraCounter--;
+            }
+
+        // new build is needed if text is not long enough, and to position it
+        buildTextFromFirstLine();
+        }
+
+
+    public void pageUp()
+        {
+        int paraCounter = 0;
+        int lineCounter = firstLine;
+
+        for ( int n = 0; n < 2; n++)
+            {
+            if (paraCounter < visibleParas.size()-1 || lineCounter < lastLine)
+                {
+                lineCounter++;
+                if (lineCounter >= visibleParas.get(paraCounter).sizeOfLines())
+                    {
+                    paraCounter++;
+                    lineCounter = 0;
+                    }
+                }
+            }
+
+        lastLine = lineCounter;
+
+        paraCounter++;
+        while ( paraCounter < visibleParas.size() )
+            {
+            visibleParas.remove(paraCounter);
+            }
+
+        buildTextFromLastLine();
         }
 
 
