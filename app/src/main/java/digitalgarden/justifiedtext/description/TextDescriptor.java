@@ -470,6 +470,22 @@ public class TextDescriptor
         }
 
 
+    public void lineUp()
+        {
+        if ( visibleParas.size() > 1 || firstLine < lastLine )
+            {
+            lastLine--;
+            if (lastLine < 0)
+                {
+                visibleParas.remove(visibleParas.size()-1);
+                lastLine = visibleParas.get(visibleParas.size()-1).sizeOfLines()-1;
+                }
+
+            buildTextFromLastLine();
+            }
+        }
+
+
     private int getLineHeight( int paragraphCounter, int lineCounter )
         {
         if ( visibleParas.get(paragraphCounter).getLine( lineCounter).isEmpty() )
